@@ -1,16 +1,14 @@
-# tox-core.py
+#!/bin/env python
 
 import os
 import glob
+import sys
+import argparse
 import os.path
 import fnmatch
 from itertools import product
 
 indexFileBase=".tox-index"
-
-
-
-
 
 
 class IndexContent(list):
@@ -63,15 +61,55 @@ def findIndex(xdir=None):
     
     
 
-def loadIndex():
+def loadIndex(xdir=None):
     """ Load the index for current dir """
-    ix=findIndex()
+    ix=findIndex(xdir)
+    if not ix:
+        return None
 
     ic=IndexContent(ix)
     return ic
 
+def resolvePatternToDir( pattern, N ):
+    """ Match pattern to index, choose Nth result or prompt user, return dirname to caller """
+
+
+    hasGlob=len([ v for v in pattern if v in ['*','?']])  # Do we have any glob chars in pattern?
+    if not hasGlob:
+        pattern='*'+pattern+'*'  # no, make it a wildcard
+
+    ix=loadIndex( os.getcwd() )
+    if len(ix)==0:
+        return None
+    mx=ix.matchPaths(pattern)
+    if len(mx)==0:
+        return None
+    if N:
+        if N >= len(mx):
+            return None
+        return mx[N]
+
+    if len(mx)==1:
+        return mx[0]
+
+    # Prompt user from matching entries:
+    for i in range(len(mx)):
+        print("%d: %s" % (i,mx[i]))
 
 
 
 if __name__=="__main__":
-    pass
+    p=argparse.ArgumentParser()
+
+    p.add_argument("-a",action='store_true',dest='add_to_index',help="Add current dir to index")
+    p.add_argument("-x",action='store_true',dest='reindex',help='Rebuild index with tree scan')
+    p.add_argument("-s",action='store_true',dest='sortindex',help='Re-sort index')
+    p.add_argument("-q",action='store_true',dest='indexinfo',help="Print index information/location")
+    p.add_argument("pattern",help="Glob pattern to match against index")
+    p.add_argument("N",nargs='?',help="Select N'th matching directory")
+    args=p.parse_args()
+    
+    resolvePatternToDir( args.pattern, args.N )
+
+
+
