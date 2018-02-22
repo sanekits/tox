@@ -2,7 +2,7 @@
 
 function debug {
     while true; do
-        pudb ./tox_core.py $*
+        pudb ~/bin/tox-py/tox_core.py $*
         read -p "Hit a key to retry"
     done
 }

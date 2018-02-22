@@ -3,16 +3,18 @@
 import os
 import glob
 import sys
+import bisect
 import argparse
 import os.path
 import fnmatch
-from itertools import product
+from getpass import getpass
+
 
 indexFileBase=".tox-index"
 
 def prompt(msg,defValue):
     sys.stderr.write("%s" % msg)
-    res=raw_input("[%s]:" % defValue)
+    res=getpass("[%s]:" % defValue,sys.stderr)
     if not res:
         return defValue
     return res
@@ -31,6 +33,45 @@ class IndexContent(list):
                 self.extend(all[1:])
             else:
                 self.extend(all)
+
+    def indexRoot(self):
+        """ Return dir of our index file """
+        return os.path.dirname(self.path)
+
+    def absPath(self,relDir):
+        """ Return an absolute path if 'relDir' isn't already one """
+        if relDir[0]=='/':
+            return relDir
+        return '/'.join([ self.indexRoot(), relDir])
+
+    def relativePath(self,dir):
+        """ Convert dir to be relative to our index root """
+        try:
+            r=self.indexRoot()
+            if dir.index(r) == 0: # If the dir starts with our index root, remove that:
+                return dir[len(r)+1:]
+        except:
+            pass
+        return dir
+
+    def addDir(self,xdir):
+        dir=self.relativePath(xdir)
+        n=bisect.bisect(self,dir)
+        if self[n]==dir:
+            return False # no change
+        self.insert(n,dir)
+        return True
+
+
+    def write(self):
+        # Write the index back to file
+        with open(self.path,'w') as f:
+            if self.protect:
+                f.write("#protect\n")
+            for line in sorted(self):
+                f.write("%s\n" % line)
+
+
 
     def matchPaths( self, pattern ):
         """ Returns matches of items in the index. """
@@ -94,10 +135,10 @@ def resolvePatternToDir( pattern, N ):
     if N:
         if N >= len(mx):
             return None
-        return mx[N]
+        return ix.absPath(mx[N])
 
     if len(mx)==1:
-        return mx[0]
+        return ix.absPath(mx[0])
 
     # Prompt user from matching entries:
     px=[]
@@ -113,7 +154,17 @@ def resolvePatternToDir( pattern, N ):
         else:
             break
 
-    return mx[resultIndex-1]
+    return ix.absPath(mx[resultIndex-1])
+
+def addCwdToIndex():
+    """ Add current dir to current index """
+    cwd=os.getcwd()
+
+    ix=loadIndex()
+
+    if ix.addDir(cwd):
+        ix.write()
+
 
 if __name__=="__main__":
     p=argparse.ArgumentParser()
@@ -122,11 +173,22 @@ if __name__=="__main__":
     p.add_argument("-x",action='store_true',dest='reindex',help='Rebuild index with tree scan')
     p.add_argument("-s",action='store_true',dest='sortindex',help='Re-sort index')
     p.add_argument("-q",action='store_true',dest='indexinfo',help="Print index information/location")
-    p.add_argument("pattern",help="Glob pattern to match against index")
+    p.add_argument("pattern",nargs='?',help="Glob pattern to match against index")
     p.add_argument("N",nargs='?',help="Select N'th matching directory")
     args=p.parse_args()
+
+    if args.add_to_index:
+        addCwdToIndex()
+        sys.exit(0)
+        
+
+    if not args.pattern:
+        sys.stderr.write("No search pattern specified, try --help\n")
+        sys.exit(1)
     
     print(resolvePatternToDir( args.pattern, args.N ))
+
+    sys.exit(0)
 
 
 
