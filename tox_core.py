@@ -108,7 +108,10 @@ def testFile(dir,name):
     return False
 
 def getParent(dir):
-    return '/'.join( dir.split('/')[:-1] ) 
+    v=dir.split('/')[:-1] 
+    if len(v)>1:
+        return '/'.join( dir.split('/')[:-1] ) 
+    return '/'
 
 
 def findIndex(xdir=None):
@@ -147,14 +150,15 @@ def resolvePatternToDir( pattern, N ):
         pattern='*'+pattern+'*'  # no, make it a wildcard
 
     if len(ix)==0:
-        return None
+        return "!No matches for pattern [%s]" % pattern
+
     mx=ix.matchPaths(pattern)
     if len(mx)==0:
-        return None
+        return "!No matches for pattern [%s]" % pattern
     if N:
         N=int(N)
         if N > len(mx):
-            return None
+            return "!Offset %d exceeds number of matches for pattern [%s]" % (N,pattern)
         return ix.absPath(mx[N-1])
 
     if len(mx)==1:
@@ -201,6 +205,13 @@ def printIndexInfo():
     if os.getcwd()==ix.indexRoot():
         print("PWD == index root")
 
+def createEmptyIndex():
+    sys.stderr.write("First-time initialization: creating ~/.tox-index\n")
+    home=os.environ.get('HOME','/tmp')
+    with open( '/'.join([home,indexFileBase]),'w') as f:
+        f.write('#protect\n')
+
+
 def cleanIndex():
     ix=loadIndex()
     ix.clean()
@@ -231,6 +242,9 @@ if __name__=="__main__":
 
 
     empty=True # Have we done anything meaningful?
+    if not findIndex():
+        createEmptyIndex()
+        empty=False
 
     if args.add_to_index:
         addCwdToIndex()
