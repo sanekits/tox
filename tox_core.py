@@ -10,6 +10,13 @@ from itertools import product
 
 indexFileBase=".tox-index"
 
+def prompt(msg,defValue):
+    sys.stderr.write("%s" % msg)
+    res=raw_input("[%s]:" % defValue)
+    if not res:
+        return defValue
+    return res
+
 
 class IndexContent(list):
     def __init__(self,path):
@@ -93,10 +100,20 @@ def resolvePatternToDir( pattern, N ):
         return mx[0]
 
     # Prompt user from matching entries:
-    for i in range(len(mx)):
-        print("%d: %s" % (i,mx[i]))
+    px=[]
+    for i in range(1,len(mx)+1):
+        px.append("%d: %s" % (i,mx[i-1]))
+    px.append("Select index ")
 
+    while True:
+        resultIndex=prompt( '\n'.join(px), str( N if N else '1' ))
+        resultIndex=int(resultIndex)
+        if resultIndex < 1 or resultIndex > len(mx):
+            sys.stderr.write("Invalid index: %d\n" % resultIndex)
+        else:
+            break
 
+    return mx[resultIndex-1]
 
 if __name__=="__main__":
     p=argparse.ArgumentParser()
@@ -109,7 +126,7 @@ if __name__=="__main__":
     p.add_argument("N",nargs='?',help="Select N'th matching directory")
     args=p.parse_args()
     
-    resolvePatternToDir( args.pattern, args.N )
+    print(resolvePatternToDir( args.pattern, args.N ))
 
 
 
