@@ -8,6 +8,7 @@ import argparse
 import os.path
 import fnmatch
 from getpass import getpass
+from subprocess import call
 
 
 indexFileBase=".tox-index"
@@ -61,6 +62,21 @@ class IndexContent(list):
         n=bisect.bisect(self,dir)
         self.insert(n,dir)
         return True
+
+
+    def clean(self):
+        okPaths=set()
+        for path in self:
+            full=self.absPath(path)
+            if not os.path.isdir(full):
+                sys.stderr.write("Stale dir removed: %s\n" % full)
+            else:
+                okPaths.add(path)
+
+        del self[:]
+        self.extend(okPaths)
+        self.write()
+        sys.stderr.write("Cleaned index %s, %s dirs remain\n" % (self.path,len(self)))
 
 
     def write(self):
@@ -121,12 +137,15 @@ def loadIndex(xdir=None):
 def resolvePatternToDir( pattern, N ):
     """ Match pattern to index, choose Nth result or prompt user, return dirname to caller """
 
+    ix=loadIndex( os.getcwd() )
+    # If the pattern is a literal match for something in the index, then fine:
+    if pattern in ix:
+        return ix.absPath(pattern)
 
     hasGlob=len([ v for v in pattern if v in ['*','?']])  # Do we have any glob chars in pattern?
     if not hasGlob:
         pattern='*'+pattern+'*'  # no, make it a wildcard
 
-    ix=loadIndex( os.getcwd() )
     if len(ix)==0:
         return None
     mx=ix.matchPaths(pattern)
@@ -169,6 +188,11 @@ def addCwdToIndex():
     else:
         sys.stderr.write("%s is already in the index\n" % cwd)
 
+def editIndex():
+    ipath=findIndex()
+    print ("!!$EDITOR %s" % ipath)
+
+
 def printIndexInfo():
     ix=loadIndex()
     print("!PWD: %s" % os.getcwd())
@@ -176,6 +200,10 @@ def printIndexInfo():
     print("# of dirs in index: %d" % len(ix))
     if os.getcwd()==ix.indexRoot():
         print("PWD == index root")
+
+def cleanIndex():
+    ix=loadIndex()
+    ix.clean()
 
 # class MyArgParser(argparse.ArgumentParser): 
 #    def error(self, message):
@@ -188,8 +216,9 @@ if __name__=="__main__":
 
     p.add_argument("-a",action='store_true',dest='add_to_index',help="Add current dir to index")
     p.add_argument("-x",action='store_true',dest='reindex',help='Rebuild index with tree scan')
-    p.add_argument("-s",action='store_true',dest='sortindex',help='Re-sort index')
+    p.add_argument("-c",action='store_true',dest='cleanindex',help='Cleanup index')
     p.add_argument("-q",action='store_true',dest='indexinfo',help="Print index information/location")
+    p.add_argument("-e",action='store_true',dest='editindex',help="Edit the index")
     p.add_argument("pattern",nargs='?',help="Glob pattern to match against index")
     p.add_argument("N",nargs='?',help="Select N'th matching directory")
     origStdout=sys.stdout
@@ -209,6 +238,14 @@ if __name__=="__main__":
 
     if args.indexinfo:
         printIndexInfo()
+        empty=False
+
+    if args.editindex:
+        editIndex()
+        sys.exit(0)
+
+    if args.cleanindex:
+        cleanIndex()
         empty=False
 
     if not args.pattern:
