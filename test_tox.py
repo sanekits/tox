@@ -1,4 +1,4 @@
-from tox-core import *
+from tox_core import *
 
 def test1():
     loadIndex()

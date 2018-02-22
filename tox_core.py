@@ -4,19 +4,19 @@ import os
 
 indexFileBase=".tox-index"
 
-class indexContent(object):
+class IndexContent(list):
     def __init__(self,path):
         self.path=path
         self.protect=False
-        self.lines=[]
 
         with open(self.path,'r') as f:
             all=f.read().split('\n')
+            all=[ l for l in all if len(l) > 0 ]
             if all[0].startswith('#protect'):
                 self.protect=True
-                self.lines=all[1:]
+                self.extend(all[1:])
             else:
-                self.lines=all
+                self.extend(all)
 
 
 def testFile(dir,name):
@@ -25,15 +25,16 @@ def testFile(dir,name):
     return False
 
 def getParent(dir):
-    return '/'.join( xdir.split('/')[:-1] ) 
+    return '/'.join( dir.split('/')[:-1] ) 
 
 
 def findIndex(xdir=None):
     """ Find the index containing current dir, or None """
     if not xdir:
         xdir=os.getcwd()
-    if testFile(xdir,indexBaseFile):
-        return '/'.join([xdir,indexBaseFile])
+    global indexFileBase
+    if testFile(xdir,indexFileBase):
+        return '/'.join([xdir,indexFileBase])
     if xdir=='/':
         return None
     # Recurse to parent dir:
@@ -44,6 +45,10 @@ def findIndex(xdir=None):
 def loadIndex():
     """ Load the index for current dir """
     ix=findIndex()
+
+    ic=IndexContent(ix)
+    print(ic)
+
 
 
 
