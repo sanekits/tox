@@ -4,7 +4,8 @@ def test1():
     loadIndex()
 
 def test2():
-    pm=PathMatcher.find_matching_paths( [ '/ab/bc/cd', '/x/y/z'], '*c' )
+    ix=loadIndex('./test1/k1')
+    pm=ix.matchPaths( pattern='*c' )
     print(pm)
 
 if __name__=="__main__":
