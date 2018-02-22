@@ -7,3 +7,11 @@ function debug {
     done
 }
 
+function run {
+    $HOME/bin/tox-py/tox_core.py $*
+}
+
+function reload {
+    source $HOME/bin/tox-py/taskrc
+}
+

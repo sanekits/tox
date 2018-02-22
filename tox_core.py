@@ -56,9 +56,9 @@ class IndexContent(list):
 
     def addDir(self,xdir):
         dir=self.relativePath(xdir)
-        n=bisect.bisect(self,dir)
-        if self[n]==dir:
+        if dir in self:
             return False # no change
+        n=bisect.bisect(self,dir)
         self.insert(n,dir)
         return True
 
@@ -133,9 +133,10 @@ def resolvePatternToDir( pattern, N ):
     if len(mx)==0:
         return None
     if N:
-        if N >= len(mx):
+        N=int(N)
+        if N > len(mx):
             return None
-        return ix.absPath(mx[N])
+        return ix.absPath(mx[N-1])
 
     if len(mx)==1:
         return ix.absPath(mx[0])
@@ -147,7 +148,7 @@ def resolvePatternToDir( pattern, N ):
     px.append("Select index ")
 
     while True:
-        resultIndex=prompt( '\n'.join(px), str( N if N else '1' ))
+        resultIndex=prompt( '\n'.join(px), '1')
         resultIndex=int(resultIndex)
         if resultIndex < 1 or resultIndex > len(mx):
             sys.stderr.write("Invalid index: %d\n" % resultIndex)
@@ -164,7 +165,23 @@ def addCwdToIndex():
 
     if ix.addDir(cwd):
         ix.write()
+        sys.stderr.write("%s added to %s\n" % (cwd,ix.path))
+    else:
+        sys.stderr.write("%s is already in the index\n" % cwd)
 
+def printIndexInfo():
+    ix=loadIndex()
+    print("!PWD: %s" % os.getcwd())
+    print("Index: %s" % ix.path)
+    print("# of dirs in index: %d" % len(ix))
+    if os.getcwd()==ix.indexRoot():
+        print("PWD == index root")
+
+# class MyArgParser(argparse.ArgumentParser): 
+#    def error(self, message):
+#       sys.stderr.write('error: %s\n' % message)
+#       self.print_help(sys.stderr)
+#       sys.exit(2)
 
 if __name__=="__main__":
     p=argparse.ArgumentParser()
@@ -175,14 +192,29 @@ if __name__=="__main__":
     p.add_argument("-q",action='store_true',dest='indexinfo',help="Print index information/location")
     p.add_argument("pattern",nargs='?',help="Glob pattern to match against index")
     p.add_argument("N",nargs='?',help="Select N'th matching directory")
-    args=p.parse_args()
+    origStdout=sys.stdout
+    try:
+        sys.stdout=sys.stderr
+        args=p.parse_args()
+
+    finally:
+        sys.stdout=origStdout
+
+
+    empty=True # Have we done anything meaningful?
 
     if args.add_to_index:
         addCwdToIndex()
-        sys.exit(0)
-        
+        empty=False
+
+    if args.indexinfo:
+        printIndexInfo()
+        empty=False
 
     if not args.pattern:
+        if not empty:
+            sys.exit(0)
+
         sys.stderr.write("No search pattern specified, try --help\n")
         sys.exit(1)
     
