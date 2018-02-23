@@ -22,9 +22,21 @@ Whenever you use `tox` to change directories, you can use `popd` to return to th
 `tox bin 2`
   * Choose the 2nd directory matching 'bin' and go to it immediately
 
-`tox -e `
+`tox -e`
    * Load the [active index](#active_index) into $EDITOR
 
+`tox -q`
+   * Print information about the active index
+
+`tox -c`
+   * Clean the index, removing dead/duplicate dirs
+
+
+## Bash shell name completion
+
+If you're using bash as your shell, tox supports directory-name completion, e.g.:
+
+`tox myproj[tab]`  will cause tox to match 'myproj' against the active index and print a list of matches, so that you can more easily complete directory names.
 
 ## The active index and index trees
 <a name='active_index' />
