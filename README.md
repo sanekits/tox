@@ -4,14 +4,24 @@ The tox shell function provides a fast directory-change navigation tool.
 
 The basic idea is that most directory-changes involve directories with long paths that you visit frequently, and it's better to do less typing to get there.
 
-`tox` uses an index (which defaults to ~/.tox-index) to maintain a list of user-specified directories. You use wildcard matching to enter part of a directory name, and if there are multiple matches a menu is presented. 
+`tox` uses an index (which defaults to ~/.tox-index) to maintain a list of user-specified directories. It provides wildcard matching for fast destination specification, and resolves ambiguity by providing match menus.
 
-If there's only 1 match, the change occurs immediately, and the previous directory is pushed onto the dirstack so that you can return quickly with `popd`.
+Admin functions allow adding/removing index entries quickly. Indexes can be local to a subtree or global.
 
-#  (quick directory changing)
+Whenever you use `tox` to change directories, you can use `popd` to return to the previous dir without specifying its name.
 
 ## Usage
 
+```
+tox -a  
+```
+Adds the current directory to active index
+
+## The active index and index trees
+
+By default, when `tox` runs the first time, it creates ~/.tox-index and uses it as the "active" index.  However, you can have other indexes: whenever you run `tox`, it does a search of parent directories for the current directory.  The first .tox-index encountered in that search becomes the active index and is the default list that will be searched for name matching.
+
+This is useful if you have a project with several directories that are visited regularly and you wish to limit the scope of name matching to that project -- by placing a .tox-index file in the root of your project, you're effectively limiting the scope of the default search behavior.
 
 ## TODO
 These things have NOT been implemented yet!
