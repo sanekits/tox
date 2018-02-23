@@ -3,5 +3,18 @@
 
 
 ## TODO
-* Get bash completion working
-* Implement -e argument
+
+* Allow this:
+    `tox bin //`
+    "Search globally thru all indexes"
+
+* Allow this:
+    `tox bin /`
+    "Search immediate ancestors "
+
+* Allow this:
+    `tox -a /etc/init.d`
+    "Add an arbitrary dir to local index"
+
+
+
