@@ -117,7 +117,7 @@ def getParent(dir):
 def findIndex(xdir=None):
     """ Find the index containing current dir, or None """
     if not xdir:
-        xdir=os.getcwd()
+        xdir=os.environ.get('PWD',os.getcwd())
     global indexFileBase
     if testFile(xdir,indexFileBase):
         return '/'.join([xdir,indexFileBase])
@@ -140,7 +140,7 @@ def loadIndex(xdir=None):
 def resolvePatternToDir( pattern, N ):
     """ Match pattern to index, choose Nth result or prompt user, return dirname to caller """
 
-    ix=loadIndex( os.getcwd() )
+    ix=loadIndex( os.environ.get('PWD',os.getcwd() ))
     # If the pattern is a literal match for something in the index, then fine:
     if pattern in ix:
         return ix.absPath(pattern)
@@ -182,7 +182,7 @@ def resolvePatternToDir( pattern, N ):
 
 def addCwdToIndex():
     """ Add current dir to current index """
-    cwd=os.getcwd()
+    cwd=os.environ.get('PWD',os.getcwd())
 
     ix=loadIndex()
 
@@ -199,16 +199,19 @@ def editIndex():
 
 def printIndexInfo():
     ix=loadIndex()
-    print("!PWD: %s" % os.getcwd())
+    print("!PWD: %s" % os.environ.get('PWD'))
     print("Index: %s" % ix.path)
     print("# of dirs in index: %d" % len(ix))
-    if os.getcwd()==ix.indexRoot():
+    if os.environ['PWD']==ix.indexRoot():
         print("PWD == index root")
 
 def createEmptyIndex():
     sys.stderr.write("First-time initialization: creating ~/.tox-index\n")
     home=os.environ.get('HOME','/tmp')
-    with open( '/'.join([home,indexFileBase]),'w') as f:
+    path='/'.join([home,indexFileBase])
+    if os.path.isfile(path):
+        raise RuntimeError("createEmptyIndex found an existing index at %s" % path)
+    with open( path,'w') as f:
         f.write('#protect\n')
 
 
@@ -223,10 +226,10 @@ def cleanIndex():
 #       sys.exit(2)
 
 if __name__=="__main__":
-    p=argparse.ArgumentParser()
+    p=argparse.ArgumentParser('tox - quick directory-changer.')
 
     p.add_argument("-a",action='store_true',dest='add_to_index',help="Add current dir to index")
-    p.add_argument("-x",action='store_true',dest='reindex',help='Rebuild index with tree scan')
+    p.add_argument("-d",action='store_true',dest='del_from_index',help="Delete current dir from index")
     p.add_argument("-c",action='store_true',dest='cleanindex',help='Cleanup index')
     p.add_argument("-q",action='store_true',dest='indexinfo',help="Print index information/location")
     p.add_argument("-e",action='store_true',dest='editindex',help="Edit the index")
