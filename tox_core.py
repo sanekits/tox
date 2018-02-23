@@ -63,6 +63,12 @@ class IndexContent(list):
         self.insert(n,dir)
         return True
 
+    def delDir(self,xdir):
+        dir=self.relativePath(xdir)
+        if not dir in self:
+            return False # no change
+        self.remove(dir)
+        return True
 
     def clean(self):
         okPaths=set()
@@ -181,7 +187,7 @@ def resolvePatternToDir( pattern, N ):
     return ix.absPath(mx[resultIndex-1])
 
 def addCwdToIndex():
-    """ Add current dir to current index """
+    """ Add current dir to active index """
     cwd=os.environ.get('PWD',os.getcwd())
 
     ix=loadIndex()
@@ -191,6 +197,18 @@ def addCwdToIndex():
         sys.stderr.write("%s added to %s\n" % (cwd,ix.path))
     else:
         sys.stderr.write("%s is already in the index\n" % cwd)
+
+def delCwdFromIndex():
+    """ Delete current dir from active index """
+    cwd=os.environ.get('PWD',os.getcwd())
+
+    ix=loadIndex()
+
+    if ix.delDir(cwd):
+        ix.write()
+        sys.stderr.write("%s removed from %s\n" % (cwd,ix.path))
+    else:
+        sys.stderr.write("%s was not found in the index\n" % cwd)
 
 def editIndex():
     ipath=findIndex()
@@ -251,6 +269,9 @@ if __name__=="__main__":
 
     if args.add_to_index:
         addCwdToIndex()
+        empty=False
+    elif args.del_from_index:
+        delCwdFromIndex()
         empty=False
 
     if args.indexinfo:
