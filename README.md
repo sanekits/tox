@@ -48,6 +48,12 @@ This is useful if you have a project with several directories that are visited r
 ## TODO
 These things have NOT been implemented yet!
 
+* Add 'create-index-here'
+
+* Add 'add all child dirs'
+
+* Add 'prune all matches'
+
 * Allow this:
     `tox bin //`
     "Search globally thru all indexes"

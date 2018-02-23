@@ -25,6 +25,7 @@ class IndexContent(list):
     def __init__(self,path):
         self.path=path
         self.protect=False
+        self.outer=None  # If we are chaining indices
 
         with open(self.path,'r') as f:
             all=f.read().split('\n')
@@ -134,13 +135,20 @@ def findIndex(xdir=None):
     
     
 
-def loadIndex(xdir=None):
-    """ Load the index for current dir """
+def loadIndex(xdir=None,deep=False,outer=None):
+    """ Load the index for current xdir.  If deep is specified,
+    also search up the tree for additional indices """
     ix=findIndex(xdir)
     if not ix:
         return None
 
     ic=IndexContent(ix)
+    if outer:
+        ic.outer=outer
+    if deep:
+        ix=findIndex(getParent(xdir))
+        if ix:
+           return loadIndex(ix,True,ic)
     return ic
 
 def resolvePatternToDir( pattern, N ):

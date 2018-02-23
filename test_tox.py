@@ -18,9 +18,13 @@ def test2():
 
     assert(len( ix.matchPaths( '*1' ))==6 )
 
+def test3():
+
 if __name__=="__main__":
 
+    test3()
     test2()
+
     test1()
 
 
