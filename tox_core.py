@@ -50,6 +50,14 @@ class IndexContent(list):
             else:
                 self.extend(all)
 
+    def Empty(self):
+        """ Return true if index chain has no entries at all """
+        if len(self):
+            return False
+        if self.outer is None:
+            return True
+        return self.outer.Empty()
+
     def indexRoot(self):
         """ Return dir of our index file """
         return os.path.dirname(self.path)
@@ -110,16 +118,19 @@ class IndexContent(list):
 
 
 
-    def matchPaths( self, pattern ):
+    def matchPaths( self, pattern, fullDirname=False ):
         """ Returns matches of items in the index. """
 
         res=[]
         for path in self:
             for frag in path.split('/'):
                 if fnmatch.fnmatch(frag,pattern):
-                    res.append(path)
+                    res.append( self.absPath(path) if fullDirname else path)
                     break
 
+        if self.outer is not None:
+            # We're a chain, so recurse:
+            res.extend( self.outer.matchPaths( pattern, True ))
         return res
 
 
@@ -168,6 +179,8 @@ def loadIndex(xdir=None,deep=False,inner=None):
            loadIndex(os.path.dirname(ix),True,ic)
     return inner if not inner is None else ic
 
+
+
 def resolvePatternToDir( pattern, N ):
     """ Match pattern to index, choose Nth result or prompt user, return dirname to caller """
 
@@ -180,16 +193,17 @@ def resolvePatternToDir( pattern, N ):
     except:
         pass
 
-    ix=loadIndex( pwd())
-    # If the pattern is a literal match for something in the index, then fine:
-    if pattern in ix:
-        return ix.absPath(pattern)
+    ix=loadIndex( pwd(), slash==0)
+
+#     # If the pattern is a literal match for something in the index, then fine:
+#     if pattern in ix:
+#         return ix.absPath(pattern)
 
     hasGlob=len([ v for v in pattern if v in ['*','?']])  # Do we have any glob chars in pattern?
     if not hasGlob:
         pattern='*'+pattern+'*'  # no, make it a wildcard
 
-    if len(ix)==0:
+    if ix.Empty():
         return "!No matches for pattern [%s]" % pattern
 
     mx=ix.matchPaths(pattern)
