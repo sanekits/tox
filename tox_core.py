@@ -171,6 +171,15 @@ def loadIndex(xdir=None,deep=False,inner=None):
 def resolvePatternToDir( pattern, N ):
     """ Match pattern to index, choose Nth result or prompt user, return dirname to caller """
 
+    slash=None
+    try:
+        slash=['//','/'].index(N)  # 0=global: search all outer indices also
+                                   # 1=top-level: only search the top-level index (bypass current)
+        N=None
+
+    except:
+        pass
+
     ix=loadIndex( pwd())
     # If the pattern is a literal match for something in the index, then fine:
     if pattern in ix:
@@ -301,7 +310,7 @@ if __name__=="__main__":
     p.add_argument("-q",action='store_true',dest='indexinfo',help="Print index information/location")
     p.add_argument("-e",action='store_true',dest='editindex',help="Edit the index")
     p.add_argument("pattern",nargs='?',help="Glob pattern to match against index")
-    p.add_argument("N",nargs='?',help="Select N'th matching directory")
+    p.add_argument("N",nargs='?',help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
     origStdout=sys.stdout
     try:
         sys.stdout=sys.stderr
