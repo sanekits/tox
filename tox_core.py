@@ -141,21 +141,24 @@ def findIndex(xdir=None):
     
     
 
-def loadIndex(xdir=None,deep=False,outer=None):
+def loadIndex(xdir=None,deep=False,inner=None):
     """ Load the index for current xdir.  If deep is specified,
     also search up the tree for additional indices """
+    if xdir and not os.path.isdir(xdir):
+        raise RuntimeException("non-dir %s passed to loadIndex()" % xdir)
+
     ix=findIndex(xdir)
     if not ix:
         return None
 
     ic=IndexContent(ix)
-    if outer:
-        ic.outer=outer
+    if not inner is None:
+        inner.outer=ic
     if deep:
         ix=findIndex(getParent(xdir))
         if ix:
-           return loadIndex(ix,True,ic)
-    return ic
+           loadIndex(os.path.dirname(ix),True,ic)
+    return inner if not inner is None else ic
 
 def resolvePatternToDir( pattern, N ):
     """ Match pattern to index, choose Nth result or prompt user, return dirname to caller """
@@ -230,14 +233,14 @@ def editIndex():
 
 
 def printIndexInfo(ixpath):
-    ix=loadIndex(ixpath)
-    print("!PWD: %s" % pwd())
+    ix=loadIndex(os.path.dirname(ixpath) if ixpath else ixpath,True)
+    print("!PWD: %s" % (pwd() if not ixpath else os.path.dirname(ixpath)))
     print("Index: %s" % ix.path)
     print("# of dirs in index: %d" % len(ix))
     if os.environ['PWD']==ix.indexRoot():
         print("PWD == index root")
 
-    if ix.outer:
+    if not ix.outer is None:
         print("   ===  Outer: === ")
         printIndexInfo( ix.outer.path )
 

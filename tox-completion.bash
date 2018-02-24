@@ -39,7 +39,7 @@ _tox()  # Here's our readline completion handler
     #echo "cur=[$cur]" >&2  Stub
     local toxfile=$(tox -q 2>&1 | egrep -m 1 '^Index' | awk '{print $2'})
 
-    local opts="$(cat ${toxfile})"
+    local opts="$(cat ${toxfile} | egrep -v '^#protect' )"
 
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )        
     return 0
