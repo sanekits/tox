@@ -223,16 +223,20 @@ def editIndex():
     print ("!!$EDITOR %s" % ipath)
 
 
-def printIndexInfo():
-    ix=loadIndex()
+def printIndexInfo(ixpath):
+    ix=loadIndex(ixpath)
     print("!PWD: %s" % os.environ.get('PWD'))
     print("Index: %s" % ix.path)
     print("# of dirs in index: %d" % len(ix))
     if os.environ['PWD']==ix.indexRoot():
         print("PWD == index root")
 
+    if ix.outer:
+        print("   ===  Outer: === ")
+        printIndexInfo( ix.outer.path )
+
 def createEmptyIndex():
-    sys.stderr.write("First-time initialization: creating ~/.tox-index\n")
+    sys.stderr.write("First-time initialization: creating ~/%s\n" % indexFileBase )
     home=os.environ.get('HOME','/tmp')
     path='/'.join([home,indexFileBase])
     if os.path.isfile(path):
@@ -283,7 +287,7 @@ if __name__=="__main__":
         empty=False
 
     if args.indexinfo:
-        printIndexInfo()
+        printIndexInfo(findIndex())
         empty=False
 
     if args.editindex:
