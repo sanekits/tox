@@ -11,10 +11,10 @@ use_tox_core=true
 if [[ -d ${LmHome}/bin/tox-py ]]; then
     # tox_core is a python script:
     function tox {
-        local newDir=$( $LmHome/bin/tox_core $* )
+        local newDir=$( $LmHome/bin/tox-py/tox_core.py $* )
         if [[ ! -z $newDir ]]; then
             if [[ "${newDir:0:1}" != "!" ]]; then
-                pushd $newDir >/dev/null
+                pushd "$newDir" >/dev/null
             else
                 if [[ "${newDir:0:2}" == "!!" ]]; then
                     # A double !! means "run this"

@@ -13,6 +13,12 @@ from subprocess import call
 
 indexFileBase=".tox-index"
 
+def pwd():
+    """ Return the $PWD value, which is nicer inside
+    trees of symlinks, but fallback to getcwd if it's not
+    set """
+    return os.environ.get('PWD',os.getcwd())
+
 def prompt(msg,defValue):
     sys.stderr.write("%s" % msg)
     res=getpass("[%s]:" % defValue,sys.stderr)
@@ -124,7 +130,7 @@ def getParent(dir):
 def findIndex(xdir=None):
     """ Find the index containing current dir, or None """
     if not xdir:
-        xdir=os.environ.get('PWD',os.getcwd())
+        xdir=pwd()
     global indexFileBase
     if testFile(xdir,indexFileBase):
         return '/'.join([xdir,indexFileBase])
@@ -154,7 +160,7 @@ def loadIndex(xdir=None,deep=False,outer=None):
 def resolvePatternToDir( pattern, N ):
     """ Match pattern to index, choose Nth result or prompt user, return dirname to caller """
 
-    ix=loadIndex( os.environ.get('PWD',os.getcwd() ))
+    ix=loadIndex( pwd())
     # If the pattern is a literal match for something in the index, then fine:
     if pattern in ix:
         return ix.absPath(pattern)
@@ -196,7 +202,7 @@ def resolvePatternToDir( pattern, N ):
 
 def addCwdToIndex():
     """ Add current dir to active index """
-    cwd=os.environ.get('PWD',os.getcwd())
+    cwd=pwd()
 
     ix=loadIndex()
 
@@ -208,7 +214,7 @@ def addCwdToIndex():
 
 def delCwdFromIndex():
     """ Delete current dir from active index """
-    cwd=os.environ.get('PWD',os.getcwd())
+    cwd=pwd()
 
     ix=loadIndex()
 
@@ -225,7 +231,7 @@ def editIndex():
 
 def printIndexInfo(ixpath):
     ix=loadIndex(ixpath)
-    print("!PWD: %s" % os.environ.get('PWD'))
+    print("!PWD: %s" % pwd())
     print("Index: %s" % ix.path)
     print("# of dirs in index: %d" % len(ix))
     if os.environ['PWD']==ix.indexRoot():
@@ -244,6 +250,13 @@ def createEmptyIndex():
     with open( path,'w') as f:
         f.write('#protect\n')
 
+def createIndexHere():
+    if os.path.isfile('./' + indexFileBase):
+        sys.stderr.write("An index already exists in %s" % os.environ.get('PWD',os.getcwd()))
+        return False
+    with open(indexFileBase,'w') as f:
+        f.write('#protect\n')
+        sys.stderr.write("Index has been created in %s" % pwd())
 
 def cleanIndex():
     ix=loadIndex()
@@ -258,6 +271,7 @@ def cleanIndex():
 if __name__=="__main__":
     p=argparse.ArgumentParser('tox - quick directory-changer.')
 
+    p.add_argument("-x",action='store_true',dest='create_ix_here',help="Create index in current dir")
     p.add_argument("-a",action='store_true',dest='add_to_index',help="Add current dir to index")
     p.add_argument("-d",action='store_true',dest='del_from_index',help="Delete current dir from index")
     p.add_argument("-c",action='store_true',dest='cleanindex',help='Cleanup index')
@@ -277,6 +291,10 @@ if __name__=="__main__":
     empty=True # Have we done anything meaningful?
     if not findIndex():
         createEmptyIndex()
+        empty=False
+
+    if args.create_ix_here:
+        createIndexHere()
         empty=False
 
     if args.add_to_index:
