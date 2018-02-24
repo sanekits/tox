@@ -13,6 +13,14 @@ from subprocess import call
 
 indexFileBase=".tox-index"
 
+def dirContains(parent,unk):
+    """ Does parent dir contain unk dir? """
+    left=os.path.realpath(parent)
+    right=os.path.realpath(unk)
+    if right.startswith(left):
+        return True
+    return False
+
 def pwd():
     """ Return the $PWD value, which is nicer inside
     trees of symlinks, but fallback to getcwd if it's not
@@ -203,11 +211,15 @@ def resolvePatternToDir( pattern, N ):
 
     return ix.absPath(mx[resultIndex-1])
 
-def addCwdToIndex():
-    """ Add current dir to active index """
-    cwd=pwd()
+def addDirToIndex(xdir):
+    """ Add dir to active index """
+    if not xdir:
+        cwd=pwd()
+    else:
+        cwd=xdir
 
-    ix=loadIndex()
+    ix=loadIndex() # Always load active index for this, even if
+                   # the dir we're adding is out of tree
 
     if ix.addDir(cwd):
         ix.write()
@@ -245,9 +257,17 @@ def printIndexInfo(ixpath):
         printIndexInfo( ix.outer.path )
 
 def createEmptyIndex():
-    sys.stderr.write("First-time initialization: creating ~/%s\n" % indexFileBase )
-    home=os.environ.get('HOME','/tmp')
-    path='/'.join([home,indexFileBase])
+    sys.stderr.write("First-time initialization: creating %s\n" % indexFileBase )
+    tgtDir=os.environ.get('HOME','/tmp')
+    cwd=pwd()
+    if dirContains(tgtDir,cwd):
+        # The current dir is within the HOME tree?
+        path='/'.join([tgtDir,indexFileBase])
+
+    else:
+        # Put it in the root, if we can
+        path='/' + indexFileBase
+
     if os.path.isfile(path):
         raise RuntimeError("createEmptyIndex found an existing index at %s" % path)
     with open( path,'w') as f:
@@ -275,7 +295,7 @@ if __name__=="__main__":
     p=argparse.ArgumentParser('tox - quick directory-changer.')
 
     p.add_argument("-x",action='store_true',dest='create_ix_here',help="Create index in current dir")
-    p.add_argument("-a",action='store_true',dest='add_to_index',help="Add current dir to index")
+    p.add_argument("-a",action='store_true',dest='add_to_index',help="Add dir to index [default=current dir]")
     p.add_argument("-d",action='store_true',dest='del_from_index',help="Delete current dir from index")
     p.add_argument("-c",action='store_true',dest='cleanindex',help='Cleanup index')
     p.add_argument("-q",action='store_true',dest='indexinfo',help="Print index information/location")
@@ -301,8 +321,9 @@ if __name__=="__main__":
         empty=False
 
     if args.add_to_index:
-        addCwdToIndex()
-        empty=False
+        addDirToIndex(args.pattern)
+        sys.exit(0)
+        
     elif args.del_from_index:
         delCwdFromIndex()
         empty=False
