@@ -29,7 +29,11 @@ def pwd():
 
 def prompt(msg,defValue):
     sys.stderr.write("%s" % msg)
-    res=getpass("[%s]:" % defValue,sys.stderr)
+    try:
+        res=getpass("[%s]:" % defValue,sys.stderr)
+    except KeyboardInterrupt:
+        sys.stderr.write("^C\n")
+        sys.exit(1)
     if not res:
         return defValue
     return res

@@ -52,7 +52,7 @@ By default, when `tox` runs the first time, it creates `~/.tox-index` and uses i
 This is useful if you have a project with several directories that are visited regularly and you wish to limit the scope of name matching to that project -- by placing a .tox-index file in the root of your project, you're effectively limiting the scope of the default search behavior.
 
 ## TODO
-These things have NOT been implemented yet!
+These things have NOT been implemented yet:
 
 * Add 'add all child dirs'
 
