@@ -10,7 +10,7 @@ use_tox_core=true
 
 if [[ -d ${LmHome}/bin/tox-py ]]; then
     # tox_core is a python script:
-    function tox {
+    function tox_w {
         local newDir=$( $LmHome/bin/tox-py/tox_core.py $* )
         if [[ ! -z $newDir ]]; then
             if [[ "${newDir:0:1}" != "!" ]]; then
@@ -25,7 +25,9 @@ if [[ -d ${LmHome}/bin/tox-py ]]; then
                 fi
             fi
         fi
+        set +f
     }
+    alias tox='set -f;tox_w'
 else
 	function tox {
 		echo "This function only works if ${LmHome}/bin/tox-py is present."
@@ -46,4 +48,3 @@ _tox()  # Here's our readline completion handler
 }
 
 complete -F _tox tox
-
