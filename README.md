@@ -54,6 +54,8 @@ This is useful if you have a project with several directories that are visited r
 ## TODO
 These things have NOT been implemented yet:
 
+* Bug - no cd if arg matches index entry exactly
+
 * Add 'add all child dirs'
 
 * Add 'prune all matches'
@@ -66,6 +68,6 @@ These things have NOT been implemented yet:
     `tox -a /etc/init.d`
     "Add an arbitrary dir to active index"
 
-* Trap KeyboardInterrupt for Ctrl+C and escape cleanly
+
 
 

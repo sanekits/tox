@@ -13,6 +13,12 @@ from subprocess import call
 
 indexFileBase=".tox-index"
 
+def pwd():
+    """ Return the $PWD value, which is nicer inside
+    trees of symlinks, but fallback to getcwd if it's not
+    set """
+    return os.environ.get('PWD',os.getcwd())
+
 def dirContains(parent,unk):
     """ Does parent dir contain unk dir? """
     left=os.path.realpath(parent)
@@ -21,17 +27,12 @@ def dirContains(parent,unk):
         return True
     return False
 
-def pwd():
-    """ Return the $PWD value, which is nicer inside
-    trees of symlinks, but fallback to getcwd if it's not
-    set """
-    return os.environ.get('PWD',os.getcwd())
 
 def prompt(msg,defValue):
     sys.stderr.write("%s" % msg)
     try:
         res=getpass("[%s]:" % defValue,sys.stderr)
-    except KeyboardInterrupt:
+    except KeyboardInterrupt,e:
         sys.stderr.write("^C\n")
         sys.exit(1)
     if not res:
@@ -209,11 +210,11 @@ def resolvePatternToDir( pattern, N ):
     if N in ['//','/']:
         N=None
 
-#     # If the pattern is a literal match for something in the index, then fine:
-#     if pattern in ix:
-#         return ix.absPath(pattern)
+    # If the pattern has slash and is a literal match for something in the index, then fine:
+    if '/' in pattern and pattern in ix:
+        return ix.absPath(pattern)
 
-    hasGlob=len([ v for v in pattern if v in ['*','?']])  # Do we have any glob chars in pattern?
+    hasGlob=len([ v for v in pattern if v in ['*','?']])  # Do we have any glob chars in pattern, 
     if not hasGlob:
         pattern='*'+pattern+'*'  # no, make it a wildcard
 
@@ -322,13 +323,9 @@ def cleanIndex():
     ix=loadIndex()
     ix.clean()
 
-# class MyArgParser(argparse.ArgumentParser): 
-#    def error(self, message):
-#       sys.stderr.write('error: %s\n' % message)
-#       self.print_help(sys.stderr)
-#       sys.exit(2)
 
-if __name__=="__main__":
+if __name__ == "__main__" :
+
     p=argparse.ArgumentParser('tox - quick directory-changer.')
 
     p.add_argument("-x",action='store_true',dest='create_ix_here',help="Create index in current dir")
@@ -383,10 +380,8 @@ if __name__=="__main__":
 
         sys.stderr.write("No search pattern specified, try --help\n")
         sys.exit(1)
-    
+
     print(resolvePatternToDir( args.pattern, args.N ))
 
     sys.exit(0)
-
-
 
