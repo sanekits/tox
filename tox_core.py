@@ -44,11 +44,12 @@ class IndexContent(list):
         with open(self.path,'r') as f:
             all=f.read().split('\n')
             all=[ l for l in all if len(l) > 0 ]
-            if all[0].startswith('#protect'):
-                self.protect=True
-                self.extend(all[1:])
-            else:
-                self.extend(all)
+            if len(all):
+                if all[0].startswith('#protect'):
+                    self.protect=True
+                    self.extend(all[1:])
+                else:
+                    self.extend(all)
 
     def Empty(self):
         """ Return true if index chain has no entries at all """
@@ -118,19 +119,27 @@ class IndexContent(list):
 
 
 
-    def matchPaths( self, pattern, fullDirname=False ):
+    def matchPaths( self, pattern, fullDirname=False):
         """ Returns matches of items in the index. """
 
         res=[]
         for path in self:
             for frag in path.split('/'):
                 if fnmatch.fnmatch(frag,pattern):
-                    res.append( self.absPath(path) if fullDirname else path)
+                    # If fullDirname is set, we'll render an absolute path.
+                    # Or... if the relative path is not a dir, we'll also
+                    # render it as absolute.  This allows for cases where an 
+                    # outer index path happens to match a local relative path
+                    # which isn't indexed.
+                    if fullDirname or not os.path.isdir(path):
+                        res.append( self.absPath(path))
+                    else:
+                        res.append( path) 
                     break
 
         if self.outer is not None:
             # We're a chain, so recurse:
-            res.extend( self.outer.matchPaths( pattern, True ))
+            res.extend( self.outer.matchPaths( pattern,True ))
         return res
 
 
@@ -174,7 +183,7 @@ def loadIndex(xdir=None,deep=False,inner=None):
     if not inner is None:
         inner.outer=ic
     if deep:
-        ix=findIndex(getParent(xdir))
+        ix=findIndex(getParent(ic.indexRoot()))
         if ix:
            loadIndex(os.path.dirname(ix),True,ic)
     return inner if not inner is None else ic
@@ -183,17 +192,18 @@ def loadIndex(xdir=None,deep=False,inner=None):
 
 def resolvePatternToDir( pattern, N ):
     """ Match pattern to index, choose Nth result or prompt user, return dirname to caller """
+    # If N == '//', means 'global': search inner and outer indices 
+    #    N == '/', means 'skip local': search outer indices only
 
-    slash=None
-    try:
-        slash=['//','/'].index(N)  # 0=global: search all outer indices also
-                                   # 1=top-level: only search the top-level index (bypass current)
+
+    ix=loadIndex( pwd(), N in ['//','/'])
+    if (N=='/'):
+        # Skip inner index, which can be acheived by walking the index chain up one level
+        if ix.outer is not None:
+            ix=ix.outer
+
+    if N in ['//','/']:
         N=None
-
-    except:
-        pass
-
-    ix=loadIndex( pwd(), slash==0)
 
 #     # If the pattern is a literal match for something in the index, then fine:
 #     if pattern in ix:
