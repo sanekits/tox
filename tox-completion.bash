@@ -3,10 +3,12 @@
 
 # Recommended: source this from .bashrc 
 
+# Requires: you have a ~/bin/tox-py directory containing tox_core.py
+
+
 # bash completion support for tox:
 [[ -z $LmHome ]] && export LmHome=$HOME
 
-use_tox_core=true
 
 if [[ -d ${LmHome}/bin/tox-py ]]; then
     # tox_core is a python script:
@@ -38,7 +40,7 @@ _tox()  # Here's our readline completion handler
 {
     COMPREPLY=()
     local cur="${COMP_WORDS[COMP_CWORD]}"
-    #echo "cur=[$cur]" >&2  Stub
+
     local toxfile=$(tox -q 2>&1 | egrep -m 1 '^Index' | awk '{print $2'})
 
     local opts="$(cat ${toxfile} | egrep -v '^#protect' )"

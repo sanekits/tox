@@ -13,6 +13,12 @@ from subprocess import call
 
 indexFileBase=".tox-index"
 
+def pwd():
+    """ Return the $PWD value, which is nicer inside
+    trees of symlinks, but fallback to getcwd if it's not
+    set """
+    return os.environ.get('PWD',os.getcwd())
+
 def dirContains(parent,unk):
     """ Does parent dir contain unk dir? """
     left=os.path.realpath(parent)
@@ -21,15 +27,14 @@ def dirContains(parent,unk):
         return True
     return False
 
-def pwd():
-    """ Return the $PWD value, which is nicer inside
-    trees of symlinks, but fallback to getcwd if it's not
-    set """
-    return os.environ.get('PWD',os.getcwd())
 
 def prompt(msg,defValue):
     sys.stderr.write("%s" % msg)
-    res=getpass("[%s]:" % defValue,sys.stderr)
+    try:
+        res=getpass("[%s]:" % defValue,sys.stderr)
+    except KeyboardInterrupt,e:
+        sys.stderr.write("^C\n")
+        sys.exit(1)
     if not res:
         return defValue
     return res
@@ -44,11 +49,20 @@ class IndexContent(list):
         with open(self.path,'r') as f:
             all=f.read().split('\n')
             all=[ l for l in all if len(l) > 0 ]
-            if all[0].startswith('#protect'):
-                self.protect=True
-                self.extend(all[1:])
-            else:
-                self.extend(all)
+            if len(all):
+                if all[0].startswith('#protect'):
+                    self.protect=True
+                    self.extend(all[1:])
+                else:
+                    self.extend(all)
+
+    def Empty(self):
+        """ Return true if index chain has no entries at all """
+        if len(self):
+            return False
+        if self.outer is None:
+            return True
+        return self.outer.Empty()
 
     def indexRoot(self):
         """ Return dir of our index file """
@@ -110,16 +124,27 @@ class IndexContent(list):
 
 
 
-    def matchPaths( self, pattern ):
+    def matchPaths( self, pattern, fullDirname=False):
         """ Returns matches of items in the index. """
 
         res=[]
         for path in self:
             for frag in path.split('/'):
                 if fnmatch.fnmatch(frag,pattern):
-                    res.append(path)
+                    # If fullDirname is set, we'll render an absolute path.
+                    # Or... if the relative path is not a dir, we'll also
+                    # render it as absolute.  This allows for cases where an 
+                    # outer index path happens to match a local relative path
+                    # which isn't indexed.
+                    if fullDirname or not os.path.isdir(path):
+                        res.append( self.absPath(path))
+                    else:
+                        res.append( path) 
                     break
 
+        if self.outer is not None:
+            # We're a chain, so recurse:
+            res.extend( self.outer.matchPaths( pattern,True ))
         return res
 
 
@@ -163,24 +188,37 @@ def loadIndex(xdir=None,deep=False,inner=None):
     if not inner is None:
         inner.outer=ic
     if deep:
-        ix=findIndex(getParent(xdir))
+        ix=findIndex(getParent(ic.indexRoot()))
         if ix:
            loadIndex(os.path.dirname(ix),True,ic)
     return inner if not inner is None else ic
 
+
+
 def resolvePatternToDir( pattern, N ):
     """ Match pattern to index, choose Nth result or prompt user, return dirname to caller """
+    # If N == '//', means 'global': search inner and outer indices 
+    #    N == '/', means 'skip local': search outer indices only
 
-    ix=loadIndex( pwd())
-    # If the pattern is a literal match for something in the index, then fine:
-    if pattern in ix:
+
+    ix=loadIndex( pwd(), N in ['//','/'])
+    if (N=='/'):
+        # Skip inner index, which can be acheived by walking the index chain up one level
+        if ix.outer is not None:
+            ix=ix.outer
+
+    if N in ['//','/']:
+        N=None
+
+    # If the pattern has slash and is a literal match for something in the index, then fine:
+    if '/' in pattern and pattern in ix:
         return ix.absPath(pattern)
 
-    hasGlob=len([ v for v in pattern if v in ['*','?']])  # Do we have any glob chars in pattern?
+    hasGlob=len([ v for v in pattern if v in ['*','?']])  # Do we have any glob chars in pattern, 
     if not hasGlob:
         pattern='*'+pattern+'*'  # no, make it a wildcard
 
-    if len(ix)==0:
+    if ix.Empty():
         return "!No matches for pattern [%s]" % pattern
 
     mx=ix.matchPaths(pattern)
@@ -285,13 +323,9 @@ def cleanIndex():
     ix=loadIndex()
     ix.clean()
 
-# class MyArgParser(argparse.ArgumentParser): 
-#    def error(self, message):
-#       sys.stderr.write('error: %s\n' % message)
-#       self.print_help(sys.stderr)
-#       sys.exit(2)
 
-if __name__=="__main__":
+if __name__ == "__main__" :
+
     p=argparse.ArgumentParser('tox - quick directory-changer.')
 
     p.add_argument("-x",action='store_true',dest='create_ix_here',help="Create index in current dir")
@@ -301,7 +335,7 @@ if __name__=="__main__":
     p.add_argument("-q",action='store_true',dest='indexinfo',help="Print index information/location")
     p.add_argument("-e",action='store_true',dest='editindex',help="Edit the index")
     p.add_argument("pattern",nargs='?',help="Glob pattern to match against index")
-    p.add_argument("N",nargs='?',help="Select N'th matching directory")
+    p.add_argument("N",nargs='?',help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
     origStdout=sys.stdout
     try:
         sys.stdout=sys.stderr
@@ -346,10 +380,8 @@ if __name__=="__main__":
 
         sys.stderr.write("No search pattern specified, try --help\n")
         sys.exit(1)
-    
+
     print(resolvePatternToDir( args.pattern, args.N ))
 
     sys.exit(0)
-
-
 
