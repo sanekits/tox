@@ -56,6 +56,8 @@ These things have NOT been implemented yet:
 
 * Bug - no cd if arg matches index entry exactly
 
+* Add - a '.tox-meta' file that can offer extended info about the project/dir
+
 * Add 'add all child dirs'
 
 * Add 'prune all matches'
