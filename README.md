@@ -56,11 +56,13 @@ These things have NOT been implemented yet:
 
 * Bug - no cd if arg matches index entry exactly
 
-* Add - a '.tox-meta' file that can offer extended info about the project/dir
+* Add - a '.tox-meta' file that can offer extended info about the project/dir, such as tags
 
 * Add 'add all child dirs'
 
 * Add 'prune all matches'
+
+* Add "print matching dirs without prompt or fluff" (for use in scripts, etc.)
 
 * Allow this:
     `tox bin /`
