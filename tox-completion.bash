@@ -3,17 +3,20 @@
 
 # Recommended: source this from .bashrc 
 
-# Requires: you have a ~/bin/tox-py directory containing tox_core.py
+# Requires: you have a ~/bin/tox-py directory containing tox_core.py, or
+# you set $TOXHOME=[dir] before sourcing tox-completion.bash
 
 
 # bash completion support for tox:
 [[ -z $LmHome ]] && export LmHome=$HOME
 
+[[ -z $TOXHOME ]] && TOXHOME=${LmHome}/bin/tox-py
 
-if [[ -d ${LmHome}/bin/tox-py ]]; then
+
+if [[ -f ${TOXHOME}/tox_core.py ]]; then
     # tox_core is a python script:
     function tox_w {
-        local newDir=$( $LmHome/bin/tox-py/tox_core.py $* )
+        local newDir=$( $TOXHOME/tox_core.py $* )
         if [[ ! -z $newDir ]]; then
             if [[ "${newDir:0:1}" != "!" ]]; then
                 pushd "$newDir" >/dev/null
@@ -32,7 +35,7 @@ if [[ -d ${LmHome}/bin/tox-py ]]; then
     alias tox='set -f;tox_w'
 else
 	function tox {
-		echo "This function only works if ${LmHome}/bin/tox-py is present."
+		echo "This function only works if \$TOXHOME/tox_core.py exists."
 	}
 fi
 
