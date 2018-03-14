@@ -60,6 +60,8 @@ These things have NOT been implemented yet:
 
 * Add 'add all child dirs'
 
+* add -p for 'plain matching list of dirs' (don't cd)
+
 * Add 'prune all matches'
 
 * Allow this:
