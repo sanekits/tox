@@ -195,8 +195,9 @@ def loadIndex(xdir=None,deep=False,inner=None):
 
 
 
-def resolvePatternToDir( pattern, N ):
-    """ Match pattern to index, choose Nth result or prompt user, return dirname to caller """
+def resolvePatternToDir( pattern, N, printonly ):
+    """ Match pattern to index, choose Nth result or prompt user, return dirname to caller. If printonly, don't prompt, just return the list
+    of matches """
     # If N == '//', means 'global': search inner and outer indices 
     #    N == '/', means 'skip local': search outer indices only
 
@@ -233,6 +234,19 @@ def resolvePatternToDir( pattern, N ):
     if len(mx)==1:
         return ix.absPath(mx[0])
 
+    if printonly:
+        return printMatchingEntries(mx,ix)
+
+    return promptMatchingEntry(mx,ix)
+
+def printMatchingEntries(mx,ix):
+    px=[]
+    for i in range(1,len(mx)+1):
+        px.append( mx[i-1])
+    return '!' + '\n'.join(px)
+
+
+def promptMatchingEntry(mx,ix):
     # Prompt user from matching entries:
     px=[]
     for i in range(1,len(mx)+1):
@@ -334,6 +348,7 @@ if __name__ == "__main__" :
     p.add_argument("-c",action='store_true',dest='cleanindex',help='Cleanup index')
     p.add_argument("-q",action='store_true',dest='indexinfo',help="Print index information/location")
     p.add_argument("-e",action='store_true',dest='editindex',help="Edit the index")
+    p.add_argument("-p",action='store_true',dest='printonly',help="Print matches in plain mode")
     p.add_argument("pattern",nargs='?',help="Glob pattern to match against index")
     p.add_argument("N",nargs='?',help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
     origStdout=sys.stdout
@@ -374,6 +389,7 @@ if __name__ == "__main__" :
         cleanIndex()
         empty=False
 
+
     if not args.pattern:
         if not empty:
             sys.exit(0)
@@ -381,7 +397,7 @@ if __name__ == "__main__" :
         sys.stderr.write("No search pattern specified, try --help\n")
         sys.exit(1)
 
-    print(resolvePatternToDir( args.pattern, args.N ))
+    print(resolvePatternToDir( args.pattern, args.N, args.printonly ))
 
     sys.exit(0)
 

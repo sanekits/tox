@@ -37,6 +37,9 @@ Whenever you use `tox` to change directories, you can use `popd` to return to th
 `tox -c`
    * Clean the index, removing dead/duplicate dirs
 
+`tox -p [pattern]`
+   * Print matching entries, but don't change dir
+
 
 ## Bash shell name completion
 
@@ -60,7 +63,7 @@ These things have NOT been implemented yet:
 
 * Add 'add all child dirs'
 
-* add -p for 'plain matching list of dirs' (don't cd)
+* Add -i for 'print matching entries, plus info about each (# of names, last modified, contents of .tox-desc'
 
 * Add 'prune all matches'
 
