@@ -231,11 +231,12 @@ def resolvePatternToDir( pattern, N, printonly ):
             return "!Offset %d exceeds number of matches for pattern [%s]" % (N,pattern)
         return ix.absPath(mx[N-1])
 
+    if printonly:
+        return printMatchingEntries(mx,ix)
+
     if len(mx)==1:
         return ix.absPath(mx[0])
 
-    if printonly:
-        return printMatchingEntries(mx,ix)
 
     return promptMatchingEntry(mx,ix)
 
