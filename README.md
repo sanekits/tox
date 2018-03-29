@@ -59,6 +59,9 @@ These things have NOT been implemented yet:
 
 * Bug - no cd if arg matches index entry exactly
 
+* Add - Allow a '#rootpath=/parent/path' property in .tox-index, so that 
+    a symlink to the index will be loadable from alien locations and correctly interpreted.
+
 * Add - a '.tox-meta' file that can offer extended info about the project/dir, such as tags
 
 * Add 'add all child dirs'
