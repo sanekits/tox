@@ -74,8 +74,6 @@ These things have NOT been implemented yet:
 
 * Add .TAGS and .DESC support for .tox-auto
 
-* Add 'add all child dirs'
-
 * Add -i for 'print matching entries, plus info about each (# of names, last modified, contents of .tox-auto'
 
 * Add 'prune all matches'
