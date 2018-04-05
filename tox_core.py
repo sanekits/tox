@@ -7,9 +7,12 @@ import bisect
 import argparse
 import os.path
 import fnmatch
+import shutil 
+import toxroot
 from getpass import getpass
 from subprocess import call
 
+tox_core_root=""  # Where is our stuff?
 
 indexFileBase=".tox-index"
 
@@ -338,8 +341,27 @@ def cleanIndex():
     ix=loadIndex()
     ix.clean()
 
+def editToxAutoHere(templateFile):
+    if not os.path.isfile("./.tox-auto"):
+        # Create from template file first time:
+        shutil.copyfile( templateFile,'./.tox-auto') 
+    # Invoke the editor:
+    print ("!!$EDITOR %s" % '.tox-auto')
+
+
+
+def findToxCoreRoot(mods):
+
+    for k,v in mods.iteritems():
+        try:
+            if v.__file__.find('tox_core.py') > 0:
+                return os.path.dirname(v.__file__)
+        except:
+            pass
 
 if __name__ == "__main__" :
+
+    tox_core_root=findToxCoreRoot(sys.modules)
 
     p=argparse.ArgumentParser('tox - quick directory-changer.')
 
@@ -350,9 +372,11 @@ if __name__ == "__main__" :
     p.add_argument("-q",action='store_true',dest='indexinfo',help="Print index information/location")
     p.add_argument("-e",action='store_true',dest='editindex',help="Edit the index")
     p.add_argument("-p",action='store_true',dest='printonly',help="Print matches in plain mode")
+    p.add_argument("--auto",action='store_true',dest='autoedit',help="Edit the local .tox-auto, create first if missing")
     p.add_argument("pattern",nargs='?',help="Glob pattern to match against index")
     p.add_argument("N",nargs='?',help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
     origStdout=sys.stdout
+
     try:
         sys.stdout=sys.stderr
         args=p.parse_args()
@@ -365,6 +389,9 @@ if __name__ == "__main__" :
     if not findIndex():
         createEmptyIndex()
         empty=False
+
+    if args.autoedit:
+        editToxAutoHere('/'.join([tox_core_root,'tox-auto-default-template']))
 
     if args.create_ix_here:
         createIndexHere()

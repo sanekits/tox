@@ -62,9 +62,9 @@ These things have NOT been implemented yet:
 * Add - Allow a '#rootpath=/parent/path' property in .tox-index, so that 
     a symlink to the index will be loadable from alien locations and correctly interpreted.
 
-* Add - a '.tox-meta' file that can offer extended info about the project/dir, such as tags and auto-load shell statements
+* Add - a '.tox-auto' file that can offer extended info about the project/dir, such as tags and auto-load shell statements
 
-* Add "auto-load shell statements": when tox changes to a directory, if it finds locally-defined shell auto-load statements, it sources them.  This accompanied by a stderr msg (suppressable with -q?) indicating "  (auto-load shell commands executed from ./.tox-meta)"
+* Add "auto-load shell statements": when tox changes to a directory, if it finds locally-defined shell auto-load statements, it sources them.  This accompanied by a stderr msg (suppressable with -q?) indicating "  (auto-load shell commands executed from ./.tox-auto)"
 
 * Add 'add all child dirs'
 

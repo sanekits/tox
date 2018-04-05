@@ -1,0 +1,17 @@
+# .tox-auto
+# 
+# vim: filetype=sh :
+#
+# This is shell script which is sourced whenever you use 'tox' to change into the current directory.  You can add any  locally-relevant shell functions, aliases, or environment vars that make sense for the project in this dir.
+#
+# Created by tox --auto
+# 
+# You can add more tags after '.TAGS' if you like, all on 1 line:
+# .TAGS: 
+# 
+# You can add a 1-line description after '.DESC' if you like
+# .DESC 
+#
+# Add your shell definitions below:
+
+

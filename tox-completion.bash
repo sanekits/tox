@@ -15,11 +15,30 @@
 
 if [[ -f ${TOXHOME}/tox_core.py ]]; then
     # tox_core is a python script:
+
+    function tox_cd_enter {
+        local newDir=$1
+        # When entering a directory, look for the '.tox-auto' file:
+        if [[ $PWD ==  $newDir ]]; then
+            return
+        fi
+        pushd "$newDir" >/dev/null
+        if [[ -f ./.tox-auto ]]; then
+            echo -n "   (tox sourcing ./.tox-auto: [" >&2
+            source ./.tox-auto
+            echo "] DONE)" >&2
+        fi
+    }
+
     function tox_w {
+        # The tox alias invokes tox_w: Our job is to pass args to
+        # tox_core.py, and then decide whether we're supposed to change dirs,
+        # print the result, or execute the command returned.
         local newDir=$( $TOXHOME/tox_core.py $* )
         if [[ ! -z $newDir ]]; then
             if [[ "${newDir:0:1}" != "!" ]]; then
-                pushd "$newDir" >/dev/null
+                # We're supposed to change to the dir identified:
+                tox_cd_enter "$newDir"
             else
                 if [[ "${newDir:0:2}" == "!!" ]]; then
                     # A double !! means "run this"
