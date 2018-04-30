@@ -267,7 +267,7 @@ def promptMatchingEntry(mx,ix):
 
     return ix.absPath(mx[resultIndex-1])
 
-def addDirToIndex(xdir):
+def addDirToIndex(xdir, recurse):
     """ Add dir to active index """
     if not xdir:
         cwd=pwd()
@@ -277,11 +277,19 @@ def addDirToIndex(xdir):
     ix=loadIndex() # Always load active index for this, even if
                    # the dir we're adding is out of tree
 
-    if ix.addDir(cwd):
-        ix.write()
-        sys.stderr.write("%s added to %s\n" % (cwd,ix.path))
-    else:
-        sys.stderr.write("%s is already in the index\n" % cwd)
+    def xAdd(path):
+        if ix.addDir(path):
+            ix.write()
+            sys.stderr.write("%s added to %s\n" % (path,ix.path))
+        else:
+            sys.stderr.write("%s is already in the index\n" % path)
+
+    xAdd(cwd)
+    if recurse:
+        for r, d, f in os.walk(cwd):
+            for p in d:
+                xAdd( r + '/' + p) 
+
 
 def delCwdFromIndex():
     """ Delete current dir from active index """
@@ -352,8 +360,10 @@ def editToxAutoHere(templateFile):
 
 def findToxCoreRoot(mods):
 
-    for k,v in mods.iteritems():
+    keys=list(mods.iterkeys())
+    for k in keys:
         try:
+            v=mods[k]
             if v.__file__.find('tox_core.py') > 0:
                 return os.path.dirname(v.__file__)
         except:
@@ -366,7 +376,8 @@ if __name__ == "__main__" :
     p=argparse.ArgumentParser('tox - quick directory-changer.')
 
     p.add_argument("-x",action='store_true',dest='create_ix_here',help="Create index in current dir")
-    p.add_argument("-a",action='store_true',dest='add_to_index',help="Add dir to index [default=current dir]")
+    p.add_argument("-r",action='store_true',dest='recurse',help="Recursive mode (e.g. for -a add all dirs in subtree)", default=False)
+    p.add_argument("-a",action='store_true',dest='add_to_index',help="Add dir to index [default=current dir, -r recurses to add all]")
     p.add_argument("-d",action='store_true',dest='del_from_index',help="Delete current dir from index")
     p.add_argument("-c",action='store_true',dest='cleanindex',help='Cleanup index')
     p.add_argument("-q",action='store_true',dest='indexinfo',help="Print index information/location")
@@ -398,7 +409,7 @@ if __name__ == "__main__" :
         empty=False
 
     if args.add_to_index:
-        addDirToIndex(args.pattern)
+        addDirToIndex(args.pattern, args.recurse)
         sys.exit(0)
         
     elif args.del_from_index:
