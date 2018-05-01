@@ -7,10 +7,10 @@
 # Created by tox --auto
 # 
 # You can add more tags after '.TAGS' if you like, all on 1 line:
-# .TAGS: 
+# .TAGS:
 # 
 # You can add a 1-line description after '.DESC' if you like
-# .DESC 
+# .DESC:
 #
 # Add your shell definitions below:
 

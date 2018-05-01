@@ -349,8 +349,14 @@ def cleanIndex():
     ix=loadIndex()
     ix.clean()
 
+def hasToxAuto(dir ):
+    xf='/'.join([dir,'.tox-auto']) 
+    return os.path.isfile(xf),xf
+
+
 def editToxAutoHere(templateFile):
-    if not os.path.isfile("./.tox-auto"):
+    has,path=hasToxAuto(".")
+    if not has:
         # Create from template file first time:
         shutil.copyfile( templateFile,'./.tox-auto') 
     # Invoke the editor:
@@ -369,6 +375,22 @@ def findToxCoreRoot(mods):
         except:
             pass
 
+def printReport(opts):
+    # Report options are single-letter flags:
+    #   d: show .DESC in auto files
+    #   t: show .TAGS in auto files
+    ix=loadIndex()
+
+    for dir in ix:
+        sys.stdout.write(dir)
+        if hasToxAuto(dir):
+            if 'd' in opts:  # show .DESC?
+                pass
+            
+
+    
+
+
 if __name__ == "__main__" :
 
     tox_core_root=findToxCoreRoot(sys.modules)
@@ -384,6 +406,7 @@ if __name__ == "__main__" :
     p.add_argument("-e",action='store_true',dest='editindex',help="Edit the index")
     p.add_argument("-p",action='store_true',dest='printonly',help="Print matches in plain mode")
     p.add_argument("--auto",action='store_true',dest='autoedit',help="Edit the local .tox-auto, create first if missing")
+    p.add_argument("--report",action='store',dest='reportOpts',help="Generate report from index: d=[show desc]\nt=[show tags]")
     p.add_argument("pattern",nargs='?',help="Glob pattern to match against index")
     p.add_argument("N",nargs='?',help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
     origStdout=sys.stdout
@@ -400,6 +423,9 @@ if __name__ == "__main__" :
     if not findIndex():
         createEmptyIndex()
         empty=False
+
+    if args.reportOpts:
+        printReport( args.reportOpts)
 
     if args.autoedit:
         editToxAutoHere('/'.join([tox_core_root,'tox-auto-default-template']))
