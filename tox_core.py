@@ -151,6 +151,39 @@ class IndexContent(list):
         return res
 
 
+class AutoContent(list):
+    """ Reader/parser of the .tox-auto files """
+    def __init__(self,path):
+        self.path=path
+        self.tagsLoc=None
+        self.descLoc=None
+        if path:
+            with open(path,"r") as f:
+                self.append(f.readlines())
+
+        lineNdx=0
+        for line in self:
+
+            # Locate the .TAGS and .DESC content:
+            if not self.tagsLoc and line.startswith('# .TAGS:'):
+                self.tagsLoc=(lineNdx, 7)
+            elif not self.descLoc and line.startswith('# .DESC:'):
+                self.descLoc=(lineNdx, 7)
+
+            lineNdx += 1 
+
+    def tags(self):
+        """ Return the value of .TAGS as array of strings """
+        if not self.tagsLoc:
+            return []
+        raw=self[ self.tagsLoc[0] ] [ self.tagsLoc[1] : ]
+        return raw.split()
+
+    def desc(self):
+        """ Return the value of .DESC as a string """
+        pass
+
+
 def testFile(dir,name):
     if os.path.exists('/'.join([dir,name])):
         return True
@@ -286,9 +319,10 @@ def addDirToIndex(xdir, recurse):
 
     xAdd(cwd)
     if recurse:
-        for r, d, f in os.walk(cwd):
-            for p in d:
-                xAdd( r + '/' + p) 
+        for r, dirs, f in os.walk(cwd):
+            dirs[:] = [ d for d in dirs if not d[0]=='.' ] # ignore hidden dirs
+            for d in dirs:
+                xAdd( r + '/' + d) 
 
 
 def delCwdFromIndex():
@@ -383,7 +417,12 @@ def printReport(opts):
 
     for dir in ix:
         sys.stdout.write(dir)
-        if hasToxAuto(dir):
+        has,autoPath=hasToxAuto(dir)
+        if has:
+            cnt=AutoContent(autoPath)
+            if 't' in opts:  # show .TAGS?
+
+                pass
             if 'd' in opts:  # show .DESC?
                 pass
             
