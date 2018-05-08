@@ -181,6 +181,8 @@ class AutoContent(list):
 
     def desc(self):
         """ Return the value of .DESC as a string """
+        if self.descLoc is None:
+            return ""
         return self[ self.descLoc[0]] [self.descLoc[1] : ].strip()
 
 
@@ -417,6 +419,7 @@ def printReport(opts):
 
     sys.stdout.write("!")
     for dir in ix:
+        dir=ix.absPath(dir)
         sys.stdout.write(dir)
         has,autoPath=hasToxAuto(dir)
         if has:
