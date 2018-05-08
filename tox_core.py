@@ -159,16 +159,16 @@ class AutoContent(list):
         self.descLoc=None
         if path:
             with open(path,"r") as f:
-                self.append(f.readlines())
+                self.extend(f.readlines())
 
         lineNdx=0
         for line in self:
 
             # Locate the .TAGS and .DESC content:
             if not self.tagsLoc and line.startswith('# .TAGS:'):
-                self.tagsLoc=(lineNdx, 7)
+                self.tagsLoc=(lineNdx, 8)
             elif not self.descLoc and line.startswith('# .DESC:'):
-                self.descLoc=(lineNdx, 7)
+                self.descLoc=(lineNdx, 8)
 
             lineNdx += 1 
 
@@ -181,7 +181,7 @@ class AutoContent(list):
 
     def desc(self):
         """ Return the value of .DESC as a string """
-        pass
+        return self[ self.descLoc[0]] [self.descLoc[1] : ].strip()
 
 
 def testFile(dir,name):
@@ -415,6 +415,7 @@ def printReport(opts):
     #   t: show .TAGS in auto files
     ix=loadIndex()
 
+    sys.stdout.write("!")
     for dir in ix:
         sys.stdout.write(dir)
         has,autoPath=hasToxAuto(dir)
@@ -422,9 +423,12 @@ def printReport(opts):
             cnt=AutoContent(autoPath)
             if 't' in opts:  # show .TAGS?
 
-                pass
+                sys.stdout.write(" [.TAGS: %s] " % ( ','.join(cnt.tags())))
+
             if 'd' in opts:  # show .DESC?
-                pass
+                sys.stdout.write( cnt.desc())
+
+        sys.stdout.write( "\n")
             
 
     
@@ -465,6 +469,7 @@ if __name__ == "__main__" :
 
     if args.reportOpts:
         printReport( args.reportOpts)
+        empty=False
 
     if args.autoedit:
         editToxAutoHere('/'.join([tox_core_root,'tox-auto-default-template']))
