@@ -24,6 +24,11 @@ if [[ -f ${TOXHOME}/tox_core.py ]]; then
         fi
         pushd "$newDir" >/dev/null
         if [[ -f ./.tox-auto ]]; then
+            # Before we source this, we want to figure out if it's a null operation, otherwise we'll
+            # print a meaningless sourcing message.
+            if [[ $( egrep -v '^#' ./.tox-auto ) == "" ]]; then
+                return  # Yes, there's a .tox-auto, but it has no initialization logic, it's just comments
+            fi
             echo -n "   (tox sourcing ./.tox-auto: [" >&2
             source ./.tox-auto
             echo "] DONE)" >&2
@@ -52,6 +57,7 @@ if [[ -f ${TOXHOME}/tox_core.py ]]; then
         set +f
     }
     alias tox='set -f;tox_w'
+    alias toxr='set -f; tox_w --report td'
 else
 	function tox {
 		echo "This function only works if \$TOXHOME/tox_core.py exists."
