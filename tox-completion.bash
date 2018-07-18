@@ -58,6 +58,24 @@ if [[ -f ${TOXHOME}/tox_core.py ]]; then
     }
     alias tox='set -f;tox_w'
     alias toxr='set -f; tox_w --report td'
+
+    function toxa { # Add current directory to ~/.tox-index, works for out-of-tree dirs also
+        if /bin/egrep -q "^${PWD}\$" ~/.tox-index 2>/dev/null ; then
+            echo "$PWD is already in ~/.tox-index"
+            return
+        fi
+        echo $PWD >> ~/.tox-index
+        sort -u ~/.tox-index | cat > ~/.tox-index
+        echo "$(pwd) added to ~/.tox-index"
+    }
+    function toxd { # Remove current dir from ~/.tox-index, works out-of-tree
+        if ! /bin/egrep -q "^${PWD}\$" ~/.tox-index 2>/dev/null ; then
+            echo "$PWD is not in ~/.tox-index"
+            return
+        fi
+        /bin/egrep -v "^${PWD}\$" ~/.tox-index 2>/dev/null | cat > ~/.tox-index
+        echo "$(pwd) removed from ~/.tox-index"
+    }
 else
 	function tox {
 		echo "This function only works if \$TOXHOME/tox_core.py exists."
