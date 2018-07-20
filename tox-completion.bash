@@ -78,9 +78,10 @@ _tox()  # Here's our readline completion handler
     COMPREPLY=()
     local cur="${COMP_WORDS[COMP_CWORD]}"
 
+    # Extract the path of the index file:
     local toxfile=$(tox -q 2>&1 | egrep -m 1 '^Index' | awk '{print $2'})
 
-    local opts="$(cat ${toxfile} | egrep -v '^#protect' )"
+    local opts="$(egrep -v '^#protect' ${toxfile} )"
 
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )        
     return 0
