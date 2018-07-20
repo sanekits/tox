@@ -295,7 +295,10 @@ def promptMatchingEntry(mx,ix):
 
     while True:
         resultIndex=prompt( '\n'.join(px), '1')
-        resultIndex=int(resultIndex)
+        try:
+            resultIndex=int(resultIndex)
+        except:
+            continue
         if resultIndex < 1 or resultIndex > len(mx):
             sys.stderr.write("Invalid index: %d\n" % resultIndex)
         else:
