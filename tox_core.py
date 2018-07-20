@@ -199,14 +199,15 @@ def getParent(dir):
 
 
 def findIndex(xdir=None):
-    """ Find the index containing current dir, or None """
+    """ Find the index containing current dir, or HOME/.tox-index, or None """
     if not xdir:
         xdir=pwd()
     global indexFileBase
     if testFile(xdir,indexFileBase):
         return '/'.join([xdir,indexFileBase])
     if xdir=='/':
-        return None
+        # If we've searched all the way up to the root /, try the user's HOME dir:
+        return findIndex( os.environ['HOME'] )
     # Recurse to parent dir:
     return findIndex( getParent(xdir))
     
