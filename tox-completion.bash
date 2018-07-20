@@ -59,34 +59,18 @@ if [[ -f ${TOXHOME}/tox_core.py ]]; then
     alias tox='set -f;tox_w'
     alias to='set -f;tox_w'
     alias toxr='set -f; tox_w --report td'
-    alias toa='toxa'
-    alias tod='toxd'
+    alias toa='set -f; tox_w -a'
+    alias tod='set -f; tox_w -d'
 
-    function toxa { # Add current directory to ~/.tox-index, works for out-of-tree dirs also
-                    # TODO: change the python to do this by default
-        if /bin/egrep -q "^${PWD}\$" ~/.tox-index 2>/dev/null ; then
-            echo "$PWD is already in ~/.tox-index"
-            return
-        fi
-        echo $PWD >> ~/.tox-index
-        sort -u ~/.tox-index | cat > ~/.tox-index
-        echo "$(pwd) added to ~/.tox-index"
-    }
-    function toxd { # Remove current dir from ~/.tox-index, works out-of-tree
-                    # TODO: change the python to do this by default
-        if ! /bin/egrep -q "^${PWD}\$" ~/.tox-index 2>/dev/null ; then
-            echo "$PWD is not in ~/.tox-index"
-            return
-        fi
-        /bin/egrep -v "^${PWD}\$" ~/.tox-index 2>/dev/null | cat > ~/.tox-index
-        echo "$(pwd) removed from ~/.tox-index"
-    }
 else
-	function tox {
+	function tox_w {
 		echo "This function only works if \$TOXHOME/tox_core.py exists."
 	}
-    alias toxa=tox
-    alias toxd=tox
+    alias to=tox_w
+    alias tox=tox_w
+    alias toa=tox_w
+    alias tod=tox_w
+    alias tor=tox_w
 fi
 
 _tox()  # Here's our readline completion handler
@@ -103,4 +87,5 @@ _tox()  # Here's our readline completion handler
 }
 
 complete -F _tox tox
+complete -F _tox to
 

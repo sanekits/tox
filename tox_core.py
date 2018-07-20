@@ -226,7 +226,7 @@ def loadIndex(xdir=None,deep=False,inner=None):
     ic=IndexContent(ix)
     if not inner is None:
         inner.outer=ic
-    if deep:
+    if deep and xdir <> os.environ['HOME']:
         ix=findIndex(getParent(ic.indexRoot()))
         if ix:
            loadIndex(os.path.dirname(ix),True,ic)
