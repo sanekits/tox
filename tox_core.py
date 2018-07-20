@@ -33,11 +33,7 @@ def dirContains(parent,unk):
 
 def prompt(msg,defValue):
     sys.stderr.write("%s" % msg)
-    try:
-        res=getpass("[%s]:" % defValue,sys.stderr)
-    except KeyboardInterrupt,e:
-        sys.stderr.write("^C\n")
-        sys.exit(1)
+    res=getpass("[%s]:" % defValue,sys.stderr)
     if not res:
         return defValue
     return res
@@ -293,8 +289,15 @@ def promptMatchingEntry(mx,ix):
         px.append("%d: %s" % (i,mx[i-1]))
     px.append("Select index ")
 
+
+
+    resultIndex=1
     while True:
-        resultIndex=prompt( '\n'.join(px), '1')
+
+        try:
+            resultIndex=prompt( '\n'.join(px), '1')
+        except KeyboardInterrupt:
+            return "!echo Ctrl+C"
         try:
             resultIndex=int(resultIndex)
         except:
@@ -303,6 +306,7 @@ def promptMatchingEntry(mx,ix):
             sys.stderr.write("Invalid index: %d\n" % resultIndex)
         else:
             break
+
 
     return ix.absPath(mx[resultIndex-1])
 
