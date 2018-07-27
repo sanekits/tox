@@ -418,6 +418,7 @@ def printReport(opts):
 if __name__ == "__main__" :
     tox_core_root=findToxCoreRoot(sys.modules)
     p=argparse.ArgumentParser('tox - quick directory-changer.')
+    p.add_argument("-z",action='store_true',dest='debugger',help="Run debugger in main")
     p.add_argument("-x",action='store_true',dest='create_ix_here',help="Create index in current dir")
     p.add_argument("-r",action='store_true',dest='recurse',help="Recursive mode (e.g. for -a add all dirs in subtree)", default=False)
     p.add_argument("-a",action='store_true',dest='add_to_index',help="Add dir to index [default=current dir, -r recurses to add all]")
@@ -437,6 +438,11 @@ if __name__ == "__main__" :
         args=p.parse_args()
     finally:
         sys.stdout=origStdout
+
+    if args.debugger:
+        import pudb
+        pudb.set_trace()
+
     empty=True # Have we done anything meaningful?
 
     if not findIndex():
