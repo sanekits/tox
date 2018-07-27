@@ -13,9 +13,7 @@ from getpass import getpass
 from subprocess import call
 
 
-from os.path import dirname
-from os.path import isdir
-from os.path import realpath
+from os.path import dirname, isdir, realpath, getcwd
 
 tox_core_root=""  # Where is our stuff?
 
@@ -35,9 +33,7 @@ def dirContains(parent,unk):
 def prompt(msg,defValue):
     sys.stderr.write("%s" % msg)
     res=getpass("[%s]:" % defValue,sys.stderr)
-    if not res:
-        return defValue
-    return res
+    return res if res else defValue
 
 
 class IndexContent(list):
