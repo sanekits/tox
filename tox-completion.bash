@@ -8,9 +8,9 @@
 
 
 # bash completion support for tox:
-[[ -z $LmHome ]] && export LmHome=$HOME
+export LmHome=${LmHome:-$HOME}
 
-[[ -z $TOXHOME ]] && TOXHOME=${LmHome}/bin/tox-py
+export TOXHOME=${$TOXHOME:-${LmHome}/bin/tox-py}
 
 
 if [[ -f ${TOXHOME}/tox_core.py ]]; then
@@ -72,6 +72,7 @@ else
     alias toa=tox_w
     alias tod=tox_w
     alias tor=tox_w
+    alias toz=tox_w
 fi
 
 _tox()  # Here's our readline completion handler
