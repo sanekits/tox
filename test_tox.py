@@ -1,31 +1,24 @@
 from tox_core import *
 
-def test1():
+def test_1():
     loadIndex()
 
-def test2():
-    # test1/.tox-index looks like this:
-    # |-- a1
-    # |   `-- b1
-    # |       `-- c1
-    # `-- x1
-    #     `-- y1
-    #         `-- z1
+def test_2():
 
-    ix=loadIndex('./test1/k1')
+    ix=loadIndex('./test1/a1')
     pm=ix.matchPaths( pattern='c*' )
-    assert(len(pm)==1)
+    assert len(pm)==1
 
-    assert(len( ix.matchPaths( '*1' ))==6 )
+    assert len( ix.matchPaths( '*1' )) == 6 
 
-def test3():
+def test_3():
     pass
 
 if __name__=="__main__" :
 
-    test3()
-    test2()
+    test_1()
+    test_3()
+    test_2()
 
-    test1()
 
 

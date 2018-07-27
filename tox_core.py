@@ -12,6 +12,10 @@ import toxroot
 from getpass import getpass
 from subprocess import call
 
+
+from os.path import dirname
+from os.path import isdir
+
 tox_core_root=""  # Where is our stuff?
 
 indexFileBase=".tox-index"
@@ -102,7 +106,7 @@ class IndexContent(list):
         okPaths=set()
         for path in self:
             full=self.absPath(path)
-            if not os.path.isdir(full):
+            if not isdir(full):
                 sys.stderr.write("Stale dir removed: %s\n" % full)
             else:
                 okPaths.add(path)
@@ -135,7 +139,7 @@ class IndexContent(list):
                     # render it as absolute.  This allows for cases where an 
                     # outer index path happens to match a local relative path
                     # which isn't indexed.
-                    if fullDirname or not os.path.isdir(path):
+                    if fullDirname or not isdir(path):
                         res.append( self.absPath(path))
                     else:
                         res.append( path) 
@@ -183,15 +187,9 @@ class AutoContent(list):
 
 
 def testFile(dir,name):
-    if os.path.exists('/'.join([dir,name])):
-        return True
-    return False
+    """ True if file 'name' is in 'dir' """
+    return os.path.exists('/'.join([dir,name]))
 
-def getParent(dir):
-    v=dir.split('/')[:-1] 
-    if len(v)>1:
-        return '/'.join( dir.split('/')[:-1] ) 
-    return '/'
 
 
 def findIndex(xdir=None):
@@ -205,15 +203,15 @@ def findIndex(xdir=None):
         # If we've searched all the way up to the root /, try the user's HOME dir:
         return findIndex( os.environ['HOME'] )
     # Recurse to parent dir:
-    return findIndex( getParent(xdir))
+    return findIndex( dirname(xdir))
     
     
 
 def loadIndex(xdir=None,deep=False,inner=None):
     """ Load the index for current xdir.  If deep is specified,
     also search up the tree for additional indices """
-    if xdir and not os.path.isdir(xdir):
-        raise RuntimeException("non-dir %s passed to loadIndex()" % xdir)
+    if xdir and not isdir(xdir):
+        raise RuntimeError("non-dir %s passed to loadIndex()" % xdir)
 
     ix=findIndex(xdir)
     if not ix:
@@ -223,9 +221,9 @@ def loadIndex(xdir=None,deep=False,inner=None):
     if not inner is None:
         inner.outer=ic
     if deep and xdir <> os.environ['HOME']:
-        ix=findIndex(getParent(ic.indexRoot()))
+        ix=findIndex(dirname(ic.indexRoot()))
         if ix:
-           loadIndex(os.path.dirname(ix),True,ic)
+           loadIndex(dirname(ix),True,ic)
     return inner if not inner is None else ic
 
 
@@ -353,8 +351,8 @@ def editIndex():
 
 
 def printIndexInfo(ixpath):
-    ix=loadIndex(os.path.dirname(ixpath) if ixpath else ixpath,True)
-    print("!PWD: %s" % (pwd() if not ixpath else os.path.dirname(ixpath)))
+    ix=loadIndex(dirname(ixpath) if ixpath else ixpath,True)
+    print("!PWD: %s" % (pwd() if not ixpath else dirname(ixpath)))
     print("Index: %s" % ix.path)
     print("# of dirs in index: %d" % len(ix))
     if os.environ['PWD']==ix.indexRoot():
@@ -415,7 +413,7 @@ def findToxCoreRoot(mods):
         try:
             v=mods[k]
             if v.__file__.find('tox_core.py') > 0:
-                return os.path.dirname(v.__file__)
+                return dirname(v.__file__)
         except:
             pass
 
