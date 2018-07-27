@@ -19,17 +19,16 @@ def pwd():
     """ Return the $PWD value, which is nicer inside
     trees of symlinks, but fallback to getcwd if it's not
     set """
-    return environ.get('PWD',os.getcwd())
-
-def dirContains(parent,unk):
-    """ Does parent dir contain unk dir? """
-    return realpath(unk).startswith(realpath(parent))
-
+    return environ.get('PWD',getcwd())
 
 def prompt(msg,defValue):
     sys.stderr.write("%s" % msg)
     res=getpass("[%s]:" % defValue,sys.stderr)
     return res if res else defValue
+
+def dirContains(parent,unk):
+    """ Does parent dir contain unk dir? """
+    return realpath(unk).startswith(realpath(parent))
 
 
 class IndexContent(list):
@@ -360,7 +359,7 @@ def createEmptyIndex():
 
 def createIndexHere():
     if isfile('./' + indexFileBase):
-        sys.stderr.write("An index already exists in %s" % environ.get('PWD',os.getcwd()))
+        sys.stderr.write("An index already exists in %s" % environ.get('PWD',getcwd()))
         return False
     with open(indexFileBase,'w') as f:
         f.write('#protect\n')

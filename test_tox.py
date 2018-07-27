@@ -1,6 +1,7 @@
 from tox_core import *
 
 def test_1():
+    print "stub1"
     loadIndex()
 
 def test_2():
