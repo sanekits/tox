@@ -13,7 +13,8 @@ from getpass import getpass
 from subprocess import call
 
 
-from os.path import dirname, isdir, realpath, getcwd
+from os.path import dirname, isdir, realpath 
+from os import getcwd
 
 tox_core_root=""  # Where is our stuff?
 
