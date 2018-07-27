@@ -1,20 +1,16 @@
 #!/usr/bin/env python
 
 import os
-import glob
 import sys
 import bisect
 import argparse
-import os.path
 import fnmatch
 import shutil 
 import toxroot
 from getpass import getpass
 from subprocess import call
-
-
-from os.path import dirname, isdir, realpath 
-from os import getcwd
+from os.path import dirname, isdir, realpath ,exists, isfile
+from os import getcwd, environ
 
 tox_core_root=""  # Where is our stuff?
 
@@ -24,7 +20,7 @@ def pwd():
     """ Return the $PWD value, which is nicer inside
     trees of symlinks, but fallback to getcwd if it's not
     set """
-    return os.environ.get('PWD',os.getcwd())
+    return environ.get('PWD',os.getcwd())
 
 def dirContains(parent,unk):
     """ Does parent dir contain unk dir? """
@@ -63,7 +59,7 @@ class IndexContent(list):
 
     def indexRoot(self):
         """ Return dir of our index file """
-        return os.path.dirname(self.path)
+        return dirname(self.path)
 
     def absPath(self,relDir):
         """ Return an absolute path if 'relDir' isn't already one """
@@ -109,7 +105,6 @@ class IndexContent(list):
         self.extend(okPaths)
         self.write()
         sys.stderr.write("Cleaned index %s, %s dirs remain\n" % (self.path,len(self)))
-
 
     def write(self):
         # Write the index back to file
@@ -180,9 +175,9 @@ class AutoContent(list):
         return self[ self.descLoc[0]] [self.descLoc[1] : ].strip()
 
 
-def testFile(dir,name):
+def isFileInDir(dir,name):
     """ True if file 'name' is in 'dir' """
-    return os.path.exists('/'.join([dir,name]))
+    return exists('/'.join([dir,name]))
 
 
 
@@ -191,11 +186,11 @@ def findIndex(xdir=None):
     if not xdir:
         xdir=pwd()
     global indexFileBase
-    if testFile(xdir,indexFileBase):
+    if isFileInDir(xdir,indexFileBase):
         return '/'.join([xdir,indexFileBase])
     if xdir=='/':
         # If we've searched all the way up to the root /, try the user's HOME dir:
-        return findIndex( os.environ['HOME'] )
+        return findIndex( environ['HOME'] )
     # Recurse to parent dir:
     return findIndex( dirname(xdir))
     
@@ -214,7 +209,7 @@ def loadIndex(xdir=None,deep=False,inner=None):
     ic=IndexContent(ix)
     if not inner is None:
         inner.outer=ic
-    if deep and xdir <> os.environ['HOME']:
+    if deep and xdir <> environ['HOME']:
         ix=findIndex(dirname(ic.indexRoot()))
         if ix:
            loadIndex(dirname(ix),True,ic)
@@ -304,21 +299,15 @@ def promptMatchingEntry(mx,ix):
 
 def addDirToIndex(xdir, recurse):
     """ Add dir to active index """
-    if not xdir:
-        cwd=pwd()
-    else:
-        cwd=xdir
-
+    cwd=xdir if xdir else pwd()
     ix=loadIndex() # Always load active index for this, even if
                    # the dir we're adding is out of tree
-
     def xAdd(path):
         if ix.addDir(path):
             ix.write()
             sys.stderr.write("%s added to %s\n" % (path,ix.path))
         else:
             sys.stderr.write("%s is already in the index\n" % path)
-
     xAdd(cwd)
     if recurse:
         for r, dirs, f in os.walk(cwd):
@@ -326,13 +315,10 @@ def addDirToIndex(xdir, recurse):
             for d in dirs:
                 xAdd( r + '/' + d) 
 
-
 def delCwdFromIndex():
     """ Delete current dir from active index """
     cwd=pwd()
-
     ix=loadIndex()
-
     if ix.delDir(cwd):
         ix.write()
         sys.stderr.write("%s removed from %s\n" % (cwd,ix.path))
@@ -349,7 +335,7 @@ def printIndexInfo(ixpath):
     print("!PWD: %s" % (pwd() if not ixpath else dirname(ixpath)))
     print("Index: %s" % ix.path)
     print("# of dirs in index: %d" % len(ix))
-    if os.environ['PWD']==ix.indexRoot():
+    if environ['PWD']==ix.indexRoot():
         print("PWD == index root")
 
     if not ix.outer is None:
@@ -358,7 +344,7 @@ def printIndexInfo(ixpath):
 
 def createEmptyIndex():
     sys.stderr.write("First-time initialization: creating %s\n" % indexFileBase )
-    tgtDir=os.environ.get('HOME','/tmp')
+    tgtDir=environ.get('HOME','/tmp')
     cwd=pwd()
     if dirContains(tgtDir,cwd):
         # The current dir is within the HOME tree?
@@ -368,14 +354,14 @@ def createEmptyIndex():
         # Put it in the root, if we can
         path='/' + indexFileBase
 
-    if os.path.isfile(path):
+    if isfile(path):
         raise RuntimeError("createEmptyIndex found an existing index at %s" % path)
     with open( path,'w') as f:
         f.write('#protect\n')
 
 def createIndexHere():
-    if os.path.isfile('./' + indexFileBase):
-        sys.stderr.write("An index already exists in %s" % os.environ.get('PWD',os.getcwd()))
+    if isfile('./' + indexFileBase):
+        sys.stderr.write("An index already exists in %s" % environ.get('PWD',os.getcwd()))
         return False
     with open(indexFileBase,'w') as f:
         f.write('#protect\n')
@@ -387,8 +373,7 @@ def cleanIndex():
 
 def hasToxAuto(dir ):
     xf='/'.join([dir,'.tox-auto']) 
-    return os.path.isfile(xf),xf
-
+    return isfile(xf),xf
 
 def editToxAutoHere(templateFile):
     has,path=hasToxAuto(".")
@@ -398,10 +383,7 @@ def editToxAutoHere(templateFile):
     # Invoke the editor:
     print ("!!$EDITOR %s" % '.tox-auto')
 
-
-
 def findToxCoreRoot(mods):
-
     keys=list(mods.iterkeys())
     for k in keys:
         try:
@@ -432,17 +414,10 @@ def printReport(opts):
                 sys.stdout.write( cnt.desc())
 
         sys.stdout.write( "\n")
-            
-
-    
-
 
 if __name__ == "__main__" :
-
     tox_core_root=findToxCoreRoot(sys.modules)
-
     p=argparse.ArgumentParser('tox - quick directory-changer.')
-
     p.add_argument("-x",action='store_true',dest='create_ix_here',help="Create index in current dir")
     p.add_argument("-r",action='store_true',dest='recurse',help="Recursive mode (e.g. for -a add all dirs in subtree)", default=False)
     p.add_argument("-a",action='store_true',dest='add_to_index',help="Add dir to index [default=current dir, -r recurses to add all]")
@@ -460,12 +435,10 @@ if __name__ == "__main__" :
     try:
         sys.stdout=sys.stderr
         args=p.parse_args()
-
     finally:
         sys.stdout=origStdout
-
-
     empty=True # Have we done anything meaningful?
+
     if not findIndex():
         createEmptyIndex()
         empty=False
@@ -500,7 +473,6 @@ if __name__ == "__main__" :
     if args.cleanindex:
         cleanIndex()
         empty=False
-
 
     if not args.pattern:
         if not empty:
