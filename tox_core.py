@@ -15,6 +15,7 @@ from subprocess import call
 
 from os.path import dirname
 from os.path import isdir
+from os.path import realpath
 
 tox_core_root=""  # Where is our stuff?
 
@@ -28,11 +29,7 @@ def pwd():
 
 def dirContains(parent,unk):
     """ Does parent dir contain unk dir? """
-    left=os.path.realpath(parent)
-    right=os.path.realpath(unk)
-    if right.startswith(left):
-        return True
-    return False
+    return realpath(unk).startswith(realpath(parent))
 
 
 def prompt(msg,defValue):
