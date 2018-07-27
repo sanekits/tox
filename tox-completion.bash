@@ -10,7 +10,7 @@
 # bash completion support for tox:
 export LmHome=${LmHome:-$HOME}
 
-export TOXHOME=${$TOXHOME:-${LmHome}/bin/tox-py}
+export TOXHOME=${TOXHOME:-${LmHome}/bin/tox-py}
 
 
 if [[ -f ${TOXHOME}/tox_core.py ]]; then

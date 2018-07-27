@@ -1,5 +1,0 @@
-# toxroot.py
-
-
-toxroot="."
-

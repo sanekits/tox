@@ -6,7 +6,6 @@ import bisect
 import argparse
 import fnmatch
 import shutil 
-import toxroot
 from getpass import getpass
 from subprocess import call
 from os.path import dirname, isdir, realpath ,exists, isfile
