@@ -207,7 +207,7 @@ def loadIndex(xdir=None,deep=False,inner=None):
     ic=IndexContent(ix)
     if not inner is None:
         inner.outer=ic
-    if deep and xdir <> environ['HOME']:
+    if deep and not xdir == environ['HOME']:
         ix=findIndex(dirname(ic.indexRoot()))
         if ix:
            loadIndex(dirname(ix),True,ic)
