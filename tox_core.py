@@ -248,7 +248,8 @@ def resolvePatternToDir( pattern, N, printonly ):
     if N:
         N=int(N)
         if N > len(mx):
-            return "!Offset %d exceeds number of matches for pattern [%s]" % (N,pattern)
+            sys.stderr.write("Warning: Offset %d exceeds number of matches for pattern [%s]. Selecting index %d instead.\n" % (N,pattern,len(mx)))
+            N = len(mx)
         return ix.absPath(mx[N-1])
 
     if printonly:
