@@ -7,7 +7,7 @@
 # you set $TOXHOME=[dir] before sourcing tox-completion.bash
 
 
-# bash completion support for tox:
+export ToxPython=$(which python3 || which python)
 export LmHome=${LmHome:-$HOME}
 
 export TOXHOME=${TOXHOME:-${LmHome}/bin/tox-py}
@@ -39,7 +39,7 @@ if [[ -f ${TOXHOME}/tox_core.py ]]; then
         # The tox alias invokes tox_w: Our job is to pass args to
         # tox_core.py, and then decide whether we're supposed to change dirs,
         # print the result, or execute the command returned.
-        local newDir=$( $TOXHOME/tox_core.py $* )
+        local newDir=$( $ToxPython $TOXHOME/tox_core.py "$@" )
         if [[ ! -z $newDir ]]; then
             if [[ "${newDir:0:1}" != "!" ]]; then
                 # We're supposed to change to the dir identified:
@@ -61,7 +61,7 @@ if [[ -f ${TOXHOME}/tox_core.py ]]; then
     alias tod='set -f; tox_w -d'
     alias tor='set -f; tox_w --report td'
     alias tox='set -f;tox_w'
-    alias toz='~/bin/tox-py/tox_core.py -z "$@"'  # Debugger invocation
+    alias toz='$ToxPython ~/bin/tox-py/tox_core.py -z "$@"'  # Debugger invocation
 
 else
 	function tox_w {
