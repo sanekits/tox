@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# vim: filetype=python :
 
 import os
 import sys
@@ -11,7 +11,7 @@ from subprocess import call
 from os.path import dirname, isdir, realpath ,exists, isfile
 from os import getcwd, environ
 
-tox_core_root=""  # Where is our stuff?
+tox_core_root=os.path.dirname(os.path.realpath(__file__))
 
 indexFileBase=".tox-index"
 
@@ -285,7 +285,11 @@ def promptMatchingEntry(mx,ix):
         except KeyboardInterrupt:
             return "!echo Ctrl+C"
         try:
+            if resultIndex.lower() == 'q':
+                sys.exit(1)
             resultIndex=int(resultIndex)
+        except SystemExit as e:
+            raise
         except:
             continue
         if resultIndex < 1 or resultIndex > len(mx):
@@ -382,15 +386,6 @@ def editToxAutoHere(templateFile):
     # Invoke the editor:
     print ("!!$EDITOR %s" % '.tox-auto')
 
-def findToxCoreRoot(mods):
-    keys=list(mods.iterkeys())
-    for k in keys:
-        try:
-            v=mods[k]
-            if v.__file__.find('tox_core.py') > 0:
-                return dirname(v.__file__)
-        except:
-            pass
 
 def printReport(opts):
     # Report options are single-letter flags:
@@ -415,7 +410,6 @@ def printReport(opts):
         sys.stdout.write( "\n")
 
 if __name__ == "__main__" :
-    tox_core_root=findToxCoreRoot(sys.modules)
     p=argparse.ArgumentParser('tox - quick directory-changer.')
     p.add_argument("-z",action='store_true',dest='debugger',help="Run debugger in main")
     p.add_argument("-x",action='store_true',dest='create_ix_here',help="Create index in current dir")
@@ -427,7 +421,7 @@ if __name__ == "__main__" :
     p.add_argument("-e",action='store_true',dest='editindex',help="Edit the index")
     p.add_argument("-p",action='store_true',dest='printonly',help="Print matches in plain mode")
     p.add_argument("--auto",action='store_true',dest='autoedit',help="Edit the local .tox-auto, create first if missing")
-    p.add_argument("--report",action='store',dest='reportOpts',help="Generate report from index: d=[show desc]\nt=[show tags]")
+    p.add_argument("--report",action='store',dest='reportOpts',nargs='?',help="Generate report from index: d=[show desc]\nt=[show tags]")
     p.add_argument("pattern",nargs='?',help="Glob pattern to match against index")
     p.add_argument("N",nargs='?',help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
     origStdout=sys.stdout

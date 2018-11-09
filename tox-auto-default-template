@@ -2,16 +2,17 @@
 # 
 # vim: filetype=sh :
 #
-# This is shell script which is sourced whenever you use 'tox' to change into the current directory.  You can add any  locally-relevant shell functions, aliases, or environment vars that make sense for the project in this dir.
-#
-# Created by tox --auto
+# This tox metadata file is used for several purposes:
 # 
-# You can add more tags after '.TAGS' if you like, all on 1 line:
+# The .TAGS:, .DESC:, and .GREPAT: are search aids, each is explained below.  The text outside of comment blocks is shell script that is executed when tox --run is invoked.
+#
+# TAGS are comma-delimited filter keys defined ad-hoc. They can be used to qualify tox operations which affect multiple directories. All TAGS must be on one line.  The tox --report with 't' option displays tags.
+#
 # .TAGS:
 # 
-# You can add a 1-line description after '.DESC' if you like
+# DESC is a single-line description of the directory. Typical use is to provide context for forgotten trees. The tox --report d option displays descriptions.
 # .DESC:
 #
-# Add your shell definitions below:
+# Anything not commented is shell script invoked with --run
 
 

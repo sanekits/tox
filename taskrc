@@ -1,12 +1,29 @@
 # taskrc for tox-py
+# vim: filetype=sh :
 
-function to_debug {
-    pudb ~/bin/tox-py/tox_core.py "$@"
+Python=$(which python3.6)
+
+unset _to_debug to_debug to_debugz _to_debugz to_run _to_run
+
+function _to_debug {
+    $Python -m pudb $HOME/bin/tox-py/tox_core.py "$@"
+    set +f;
 }
 
-function to_run {
-    $HOME/bin/tox-py/tox_core.py "$@"
+alias to_debug='set -f; _to_debug'
+
+function _to_debugz {
+    $Python $HOME/bin/tox-py/tox_core.py -z "$@"
+    set +f;
 }
+alias to_debugz='set -f; _to_debugz -z'
+
+function _to_run {
+    $Python $HOME/bin/tox-py/tox_core.py "$@"
+    set +f;
+}
+alias to_run='set -f; _to_run'
+
 
 function to_reload {
     source $HOME/bin/tox-py/taskrc
