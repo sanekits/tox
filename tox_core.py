@@ -170,7 +170,7 @@ class AutoContent(list):
         """ Return the value of .DESC as a string """
         if self.descLoc is None:
             return ""
-        return self[ self.descLoc[0]] [self.descLoc[1] : ].strip()
+        return self[ self.descLoc[0]] [self.descLoc[1] : ].rstrip()
 
 
 def isFileInDir(dir,name):

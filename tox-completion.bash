@@ -56,11 +56,11 @@ if [[ -f ${TOXHOME}/tox_core.py ]]; then
         fi
         set +f
     }
-    alias tox='set -f;tox_w'
     alias to='set -f;tox_w'
-    alias toxr='set -f; tox_w --report td'
     alias toa='set -f; tox_w -a'
     alias tod='set -f; tox_w -d'
+    alias tor='set -f; tox_w --report td'
+    alias tox='set -f;tox_w'
     alias toz='~/bin/tox-py/tox_core.py -z "$@"'  # Debugger invocation
 
 else
@@ -68,10 +68,10 @@ else
 		echo "This function only works if \$TOXHOME/tox_core.py exists."
 	}
     alias to=tox_w
-    alias tox=tox_w
     alias toa=tox_w
     alias tod=tox_w
     alias tor=tox_w
+    alias tox=tox_w
     alias toz=tox_w
 fi
 
