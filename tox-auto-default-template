@@ -13,6 +13,11 @@
 # DESC is a single-line description of the directory. Typical use is to provide context for forgotten trees. The tox --report d option displays descriptions.
 # .DESC:
 #
-# Anything not commented is shell script invoked with --run
+# Anything not commented is shell script, invoked with --run (so you can "run a set of directories" by using tags and --run in tox command-line)
+#
+#
+#  GREPAT is a glob filename pattern which is passed to the file-search tool  when the --grep option is specified. So a combination of tags and --grep can do a search focused on specific directories.  The '-r' option applies the pattern recursively. This is useful for identifying the important docs in a directory from a high-level view, speeding the default search process
+# .GREPAT: -r *
+#
 
 

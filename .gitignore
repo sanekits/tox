@@ -1,3 +1,4 @@
 *.pyc
 .tox-auto
 .pytest_cache
+tags

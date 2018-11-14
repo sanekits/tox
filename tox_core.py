@@ -216,12 +216,18 @@ def loadIndex(xdir=None, deep=False, inner=None):
     return inner if not inner is None else ic
 
 
-def resolvePatternToDir(pattern, N, printonly):
-    """ Match pattern to index, choose Nth result or prompt user, return dirname to caller. If printonly, don't prompt, just return the list
-    of matches """
+class ResolveMode(object):
+    userio = 1  # interact with user, menu-driven
+    printonly = 2  # print the match list
+    calc = 3    # calculate the match list and return it
+
+
+def resolvePatternToDir(pattern, N, ResolveMode=Mode.userio):
+    """ Match pattern to index, choose Nth result or prompt user, return dirname to caller. If printonly, don't prompt, just return the list of matches."""
     # If N == '//', means 'global': search inner and outer indices
     #    N == '/', means 'skip local': search outer indices only
 
+    # ix is the directory index:
     ix = loadIndex(pwd(), N in ['//', '/'])
     if (N == '/'):
         # Skip inner index, which can be acheived by walking the index chain up one level
@@ -231,17 +237,18 @@ def resolvePatternToDir(pattern, N, printonly):
     if N in ['//', '/']:
         N = None
 
-    # If the pattern has slash and is a literal match for something in the index, then fine:
+    if ix.Empty():
+        return "!No matches for pattern [%s]" % pattern
+
+    # If the pattern has slash and literally matches something in the index, then we accept it as the One True Match:
     if '/' in pattern and pattern in ix:
         return ix.absPath(pattern)
 
-    # Do we have any glob chars in pattern,
+    # Do we have any glob chars in pattern?
     hasGlob = len([v for v in pattern if v in ['*', '?']])
     if not hasGlob:
-        pattern = '*'+pattern+'*'  # no, make it a wildcard
-
-    if ix.Empty():
-        return "!No matches for pattern [%s]" % pattern
+        # no, make it a wildcard: our default behavior is 'match any part of path'
+        pattern = '*'+pattern+'*'
 
     mx = ix.matchPaths(pattern)
     if len(mx) == 0:
@@ -254,7 +261,7 @@ def resolvePatternToDir(pattern, N, printonly):
             N = len(mx)
         return ix.absPath(mx[N-1])
 
-    if printonly:
+    if mode == ResolveMode.printonly:
         return printMatchingEntries(mx, ix)
 
     if len(mx) == 1:
