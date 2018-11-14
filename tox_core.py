@@ -222,7 +222,7 @@ class ResolveMode(object):
     calc = 3    # calculate the match list and return it
 
 
-def resolvePatternToDir(pattern, N, ResolveMode=Mode.userio):
+def resolvePatternToDir(pattern, N, mode=ResolveMode.userio):
     """ Match pattern to index, choose Nth result or prompt user, return dirname to caller. If printonly, don't prompt, just return the list of matches."""
     # If N == '//', means 'global': search inner and outer indices
     #    N == '/', means 'skip local': search outer indices only
