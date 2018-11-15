@@ -454,10 +454,8 @@ if __name__ == "__main__":
                    help="Print matches in plain mode")
     p.add_argument("--auto", "--autoedit", action='store_true', dest='autoedit',
                    help="Edit the local .tox-auto, create first if missing")
-    p.add_argument("-t", "--report", action='store', dest='reportOpts', nargs='?',
-                   help="Generate report from index: d=[show desc]\nt=[show tags]")
-    p.add_argument("pattern", nargs='?',
-                   help="Glob pattern to match against index")
+    p.add_argument("-t", "--report", action='store_true', dest='do_report', help="Generate report from .tox-auto content") 
+    p.add_argument("pattern", nargs='?', help="Glob pattern to match against index")
     p.add_argument(
         "N", nargs='?', help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
     origStdout = sys.stdout
@@ -478,8 +476,8 @@ if __name__ == "__main__":
         createEmptyIndex()
         empty = False
 
-    if args.reportOpts:
-        printReport(args.reportOpts)
+    if args.do_report:
+        printReport('dt')
         empty = False
 
     if args.autoedit:
