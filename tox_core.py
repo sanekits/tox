@@ -230,7 +230,7 @@ def resolvePatternToDir(pattern, N, mode=ResolveMode.userio):
     # ix is the directory index:
     ix = loadIndex(pwd(), N in ['//', '/'])
     if (N == '/'):
-        # Skip inner index, which can be acheived by walking the index chain up one level
+        # Skip inner index, which can be achieved by walking the index chain up one level
         if ix.outer is not None:
             ix = ix.outer
 
@@ -238,11 +238,12 @@ def resolvePatternToDir(pattern, N, mode=ResolveMode.userio):
         N = None
 
     if ix.Empty():
-        return "!No matches for pattern [%s]" % pattern
+        return (None, "!No matches for pattern [%s]" % pattern)
 
     # If the pattern has slash and literally matches something in the index, then we accept it as the One True Match:
     if '/' in pattern and pattern in ix:
-        return ix.absPath(pattern)
+        rk = ix.absPath(pattern)
+        return ([rk],r)
 
     # Do we have any glob chars in pattern?
     hasGlob = len([v for v in pattern if v in ['*', '?']])
@@ -252,20 +253,25 @@ def resolvePatternToDir(pattern, N, mode=ResolveMode.userio):
 
     mx = ix.matchPaths(pattern)
     if len(mx) == 0:
-        return "!No matches for pattern [%s]" % pattern
+        return (None,"!No matches for pattern [%s]" % pattern)
     if N:
         N = int(N)
         if N > len(mx):
             sys.stderr.write("Warning: Offset %d exceeds number of matches for pattern [%s]. Selecting index %d instead.\n" % (
                 N, pattern, len(mx)))
             N = len(mx)
-        return ix.absPath(mx[N-1])
+        rk = ix.absPath(mx[N-1])
+        return ([rk],rk)
 
     if mode == ResolveMode.printonly:
         return printMatchingEntries(mx, ix)
 
     if len(mx) == 1:
-        return ix.absPath(mx[0])
+        rk = ix.absPath(mx[0])
+        return ([rk],rk)
+
+    if mode == ResolveMode.calc:
+        return ([mx,None])
 
     return promptMatchingEntry(mx, ix)
 
@@ -274,7 +280,7 @@ def printMatchingEntries(mx, ix):
     px = []
     for i in range(1, len(mx)+1):
         px.append(mx[i-1])
-    return '!' + '\n'.join(px)
+    return (mx, '!' + '\n'.join(px))
 
 
 def promptMatchingEntry(mx, ix):
@@ -288,7 +294,7 @@ def promptMatchingEntry(mx, ix):
         try:
             resultIndex = prompt('\n'.join(px), '1')
         except KeyboardInterrupt:
-            return "!echo Ctrl+C"
+            return (mx, "!echo Ctrl+C")
         try:
             if resultIndex.lower() == 'q':
                 sys.exit(1)
@@ -302,7 +308,7 @@ def promptMatchingEntry(mx, ix):
         else:
             break
 
-    return ix.absPath(mx[resultIndex-1])
+    return (mx, ix.absPath(mx[resultIndex-1]))
 
 
 def addDirToIndex(xdir, recurse):
@@ -428,27 +434,27 @@ def printReport(opts):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser('tox - quick directory-changer.')
-    p.add_argument("-z", action='store_true', dest='debugger',
+    p.add_argument("-z", "--debug", action='store_true', dest='debugger',
                    help="Run debugger in main")
-    p.add_argument("-x", action='store_true', dest='create_ix_here',
+    p.add_argument("-x", "--ix-here", action='store_true', dest='create_ix_here',
                    help="Create index in current dir")
-    p.add_argument("-r", action='store_true', dest='recurse',
+    p.add_argument("-r", "--recurse", action='store_true', dest='recurse',
                    help="Recursive mode (e.g. for -a add all dirs in subtree)", default=False)
-    p.add_argument("-a", action='store_true', dest='add_to_index',
+    p.add_argument("-a", "--add-dir", action='store_true', dest='add_to_index',
                    help="Add dir to index [default=current dir, -r recurses to add all]")
-    p.add_argument("-d", action='store_true', dest='del_from_index',
+    p.add_argument("-d", "--del-dir", action='store_true', dest='del_from_index',
                    help="Delete current dir from index")
-    p.add_argument("-c", action='store_true',
+    p.add_argument("-c", "--cleanup", action='store_true',
                    dest='cleanindex', help='Cleanup index')
-    p.add_argument("-q", action='store_true', dest='indexinfo',
+    p.add_argument("-q", "--query", action='store_true', dest='indexinfo',
                    help="Print index information/location")
-    p.add_argument("-e", action='store_true',
+    p.add_argument("-e", "--edit", action='store_true',
                    dest='editindex', help="Edit the index")
-    p.add_argument("-p", action='store_true', dest='printonly',
+    p.add_argument("-p", "--printonly", action='store_true', dest='printonly',
                    help="Print matches in plain mode")
-    p.add_argument("--auto", action='store_true', dest='autoedit',
+    p.add_argument("--auto", "--autoedit", action='store_true', dest='autoedit',
                    help="Edit the local .tox-auto, create first if missing")
-    p.add_argument("--report", action='store', dest='reportOpts', nargs='?',
+    p.add_argument("-t", "--report", action='store', dest='reportOpts', nargs='?',
                    help="Generate report from index: d=[show desc]\nt=[show tags]")
     p.add_argument("pattern", nargs='?',
                    help="Glob pattern to match against index")
@@ -510,6 +516,9 @@ if __name__ == "__main__":
         sys.stderr.write("No search pattern specified, try --help\n")
         sys.exit(1)
 
-    print(resolvePatternToDir(args.pattern, args.N, args.printonly))
+    rmode=ResolveMode.printonly if args.printonly else ResolveMode.userio
+    res = resolvePatternToDir(args.pattern, args.N, rmode)
+    if res[1]:
+        print(res[1])
 
     sys.exit(0)
