@@ -261,6 +261,8 @@ def resolvePatternToDir(pattern, N, mode=ResolveMode.userio):
                 N, pattern, len(mx)))
             N = len(mx)
         rk = ix.absPath(mx[N-1])
+        if mode == ResolveMode.printonly:
+            return printMatchingEntries([rk],rk)
         return ([rk],rk)
 
     if mode == ResolveMode.printonly:
