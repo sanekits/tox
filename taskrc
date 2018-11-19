@@ -5,27 +5,34 @@ Python=$(which python2)
 
 unset _to_debug to_debug to_debugz _to_debugz to_run _to_run
 
+ToxHome=${ToxHome:-$HOME/bin/tox-py}
+
 function _to_debug {
-    $Python -m pudb $HOME/bin/tox-py/tox_core.py "$@"
+    $Python -m pudb ${ToxHome}/tox_core.py "$@"
     set +f;
 }
 
 alias to_debug='set -f; _to_debug'
 
 # function _to_debugz {
-    # $Python $HOME/bin/tox-py/tox_core.py -z "$@"
+    # $Python ${ToxHome}/tox_core.py -z "$@"
     # set +f;
 # }
 # alias to_debugz='set -f; _to_debugz -z'
 
 function _to_run {
-    $Python $HOME/bin/tox-py/tox_core.py "$@"
+    $Python ${ToxHome}/tox_core.py "$@"
     set +f;
 }
 alias to_run='set -f; _to_run'
 
+function to_test_debug {
+    $Python -m pudb ${ToxHome}/test_tox.py "$@"
+}
+
+alias to_run='set -f; _to_run'
 
 function to_reload {
-    source $HOME/bin/tox-py/taskrc
+    source ${ToxHome}/taskrc
 }
 

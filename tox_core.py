@@ -13,6 +13,8 @@ from os import getcwd, environ
 
 tox_core_root = os.path.dirname(os.path.realpath(__file__))
 
+file_sys_root='/'  # Swap this for chroot-like testing
+
 indexFileBase = ".tox-index"
 
 
@@ -189,7 +191,7 @@ def findIndex(xdir=None):
     global indexFileBase
     if isFileInDir(xdir, indexFileBase):
         return '/'.join([xdir, indexFileBase])
-    if xdir == '/':
+    if len(xdir) <= len(file_sys_root):
         # If we've searched all the way up to the root /, try the user's HOME dir:
         return findIndex(environ['HOME'])
     # Recurse to parent dir:
