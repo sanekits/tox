@@ -24,6 +24,7 @@ def test_1():
 
 def test_2():
 
+
     with TmpSwap(os.getcwd(),tox_core_root,os.chdir):
         ix = loadIndex('./test1/a1')
         pm = ix.matchPaths(pattern='c*')
@@ -33,11 +34,13 @@ def test_2():
 
 
 def test_3():
-    pass
+    with TmpSwap(toxRootKey,tox_core_root+'/tree-2/',setToxSysRoot):
+        ix = loadIndex()
 
 
 if __name__ == "__main__":
 
-    test_1()
     test_3()
+    test_1()
     test_2()
+

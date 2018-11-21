@@ -13,7 +13,14 @@ from os import getcwd, environ
 
 tox_core_root = os.path.dirname(os.path.realpath(__file__))
 
-file_sys_root='/'  # Swap this for chroot-like testing
+toxRootKey='ToxSysRoot'
+file_sys_root=os.getenv(toxRootKey,'/')
+# Swap this for chroot-like testing
+def setToxSysRoot(d):
+    prev=file_sys_root
+    global file_sys_root
+    file_sys_root=d
+    return prev
 
 indexFileBase = ".tox-index"
 
@@ -189,6 +196,7 @@ def findIndex(xdir=None):
     if not xdir:
         xdir = pwd()
     global indexFileBase
+    if file_sys_root.find(xdir) == 0 || len(xdir) < 
     if isFileInDir(xdir, indexFileBase):
         return '/'.join([xdir, indexFileBase])
     if len(xdir) <= len(file_sys_root):
