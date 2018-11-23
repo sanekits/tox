@@ -16,7 +16,7 @@ tox_core_root = os.path.dirname(os.path.realpath(__file__))
 toxRootKey='ToxSysRoot'
 file_sys_root=os.getenv(toxRootKey,'/')
 # Swap this for chroot-like testing
-def setToxSysRoot(d):
+def set_file_sys_root(d):
     global file_sys_root
     prev=file_sys_root
     file_sys_root=d
@@ -202,10 +202,12 @@ def findIndex(xdir=None):
         xdir = pwd()
     global indexFileBase
     if not isChildDir(file_sys_root,xdir):
-        if len(xdir) < len(file_sys_root):
-            return None
-        # If we've searched all the way up to the root /, try the user's HOME dir:
-        return findIndex(environ['HOME'])
+        xdir = os.path.realpath(xdir)
+        if not isChildDir(file_sys_root,xdir):
+            if len(xdir) < len(file_sys_root):
+                return None
+            # If we've searched all the way up to the root /, try the user's HOME dir:
+            return findIndex(environ['HOME'])
     if isFileInDir(xdir, indexFileBase):
         return '/'.join([xdir, indexFileBase])
     # Recurse to parent dir:
