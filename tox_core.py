@@ -17,8 +17,8 @@ toxRootKey='ToxSysRoot'
 file_sys_root=os.getenv(toxRootKey,'/')
 # Swap this for chroot-like testing
 def setToxSysRoot(d):
-    prev=file_sys_root
     global file_sys_root
+    prev=file_sys_root
     file_sys_root=d
     return prev
 
@@ -190,18 +190,24 @@ def isFileInDir(dir, name):
     """ True if file 'name' is in 'dir' """
     return exists('/'.join([dir, name]))
 
+def isChildDir(parent,cand):
+    ''' Returns true if parent is an ancestor of cand. '''
+    if cand.startswith(parent) and len(cand) > len(parent):
+        return True
+    return False
 
 def findIndex(xdir=None):
     """ Find the index containing current dir, or HOME/.tox-index, or None """
     if not xdir:
         xdir = pwd()
     global indexFileBase
-    if file_sys_root.find(xdir) == 0 || len(xdir) < 
-    if isFileInDir(xdir, indexFileBase):
-        return '/'.join([xdir, indexFileBase])
-    if len(xdir) <= len(file_sys_root):
+    if not isChildDir(file_sys_root,xdir):
+        if len(xdir) < len(file_sys_root):
+            return None
         # If we've searched all the way up to the root /, try the user's HOME dir:
         return findIndex(environ['HOME'])
+    if isFileInDir(xdir, indexFileBase):
+        return '/'.join([xdir, indexFileBase])
     # Recurse to parent dir:
     return findIndex(dirname(xdir))
 
@@ -385,11 +391,9 @@ def createEmptyIndex():
         # Put it in the root, if we can
         path = '/' + indexFileBase
 
-    if isfile(path):
-        raise RuntimeError(
-            "createEmptyIndex found an existing index at %s" % path)
-    with open(path, 'w') as f:
-        f.write('#protect\n')
+    if not isfile(path):
+        with open(path, 'w') as f:
+            f.write('#protect\n')
 
 
 def createIndexHere():
