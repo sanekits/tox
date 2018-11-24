@@ -2,6 +2,10 @@
 
 import os
 import sys
+tox_core_root = os.path.dirname(os.path.realpath(__file__))
+
+sys.path.insert(0,tox_core_root)
+
 import bisect
 import argparse
 import fnmatch
@@ -10,8 +14,8 @@ from getpass import getpass
 from subprocess import call
 from os.path import dirname, isdir, realpath, exists, isfile
 from os import getcwd, environ
+from setutils import IndexedSet
 
-tox_core_root = os.path.dirname(os.path.realpath(__file__))
 
 toxRootKey='ToxSysRoot'
 file_sys_root=os.getenv(toxRootKey,'/')
@@ -128,8 +132,7 @@ class IndexContent(list):
 
     def matchPaths(self, pattern, fullDirname=False):
         """ Returns matches of items in the index. """
-
-        res = []
+        xs = IndexedSet()
         for path in self:
             for frag in path.split('/'):
                 if fnmatch.fnmatch(frag, pattern):
@@ -139,15 +142,14 @@ class IndexContent(list):
                     # outer index path happens to match a local relative path
                     # which isn't indexed.
                     if fullDirname or not isdir(path):
-                        res.append(self.absPath(path))
-                    else:
-                        res.append(path)
-                    break
+                        dd = self.absPath(path)
+                        xs.add(dd)
 
         if self.outer is not None:
             # We're a chain, so recurse:
-            res.extend(self.outer.matchPaths(pattern, True))
-        return res
+            pp = self.outer.matchPaths(pattern, True)
+            xs = xs.union(pp)
+        return list(xs)
 
 
 class AutoContent(list):
