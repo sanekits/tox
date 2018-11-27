@@ -516,6 +516,7 @@ if __name__ == "__main__":
 
     if args.autoedit:
         editToxAutoHere('/'.join([tox_core_root, 'tox-auto-default-template']))
+        sys.exit(0)
 
     if args.create_ix_here:
         createIndexHere()
