@@ -6,6 +6,7 @@ tox_core_root = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.insert(0,tox_core_root)
 
+import StringIO
 import re
 import bisect
 import argparse
@@ -431,26 +432,36 @@ def editToxAutoHere(templateFile):
 
 
 def printGrep(pattern, ostream=None):
-
     if pattern:
-        ostream=iostring.StringIO()
+        ostream=StringIO.StringIO()
+    else:
+        ostream=sys.stdout
     ix = loadIndex()
-
-    ostream.write("!")
+    sys.stdout.write("!")
     for dir in ix:
         dir = ix.absPath(dir)
-        sys.stdout.write(dir)
+        ostream.write(dir)
         has, autoPath = hasToxAuto(dir)
         if has:
             cnt = AutoContent(autoPath)
             ostream.write(" [.TAGS: %s] " % (','.join(cnt.tags())))
             ostream.write(cnt.desc())
-            
         ostream.write("\n")
 
-    if pattern:
+    matchCnt=0
+    if not pattern:
+        return len(ix) > 0
+    else:
         # Match the pattern and print matches
+        lines = ostream.getvalue().split('\n')
+        for line in lines:
+            vv = re.search(pattern,line)
+            if vv:
+                matchCnt += 1
+                print(line)
 
+        return matchCnt > 0
+    
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser('tox - quick directory-changer.')
@@ -497,8 +508,9 @@ if __name__ == "__main__":
         empty = False
 
     if args.do_grep:
-        printGrep(args.pattern)
-        empty = False
+        vv = printGrep(args.pattern)
+        sys.exit( 0 if vv else 1)
+        
 
     if args.autoedit:
         editToxAutoHere('/'.join([tox_core_root, 'tox-auto-default-template']))
