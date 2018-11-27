@@ -145,8 +145,9 @@ class IndexContent(list):
                     # outer index path happens to match a local relative path
                     # which isn't indexed.
                     if fullDirname or not isdir(path):
-                        dd = self.absPath(path)
-                        xs.add(dd)
+                        xs.add(self.absPath(path))
+                    else:
+                        xs.add(path)
 
         if self.outer is not None:
             # We're a chain, so recurse:
