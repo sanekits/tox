@@ -134,6 +134,7 @@ class IndexContent(list):
 
     def matchPaths(self, pattern, fullDirname=False):
         """ Returns matches of items in the index. """
+
         xs = IndexedSet()
         for path in self:
             for frag in path.split('/'):
@@ -306,7 +307,6 @@ def printMatchingEntries(mx, ix):
         px.append(mx[i-1])
     return (mx, '!' + '\n'.join(px))
 
-
 def promptMatchingEntry(mx, ix):
     # Prompt user from matching entries:
     px = []
@@ -333,6 +333,7 @@ def promptMatchingEntry(mx, ix):
             break
 
     return (mx, ix.absPath(mx[resultIndex-1]))
+
 
 
 def addDirToIndex(xdir, recurse):
@@ -402,6 +403,7 @@ def createEmptyIndex():
             f.write('#protect\n')
 
 
+
 def createIndexHere():
     if isfile('./' + indexFileBase):
         sys.stderr.write("An index already exists in %s" %
@@ -429,7 +431,6 @@ def editToxAutoHere(templateFile):
         shutil.copyfile(templateFile, './.tox-auto')
     # Invoke the editor:
     print("!!$EDITOR %s" % '.tox-auto')
-
 
 def printGrep(pattern, ostream=None):
     if pattern:
