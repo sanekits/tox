@@ -6,6 +6,7 @@ tox_core_root = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.insert(0,tox_core_root)
 
+import re
 import bisect
 import argparse
 import fnmatch
@@ -429,27 +430,26 @@ def editToxAutoHere(templateFile):
     print("!!$EDITOR %s" % '.tox-auto')
 
 
-def printReport(opts):
-    # Report options are single-letter flags:
-    #   d: show .DESC in auto files
-    #   t: show .TAGS in auto files
+def printGrep(pattern, ostream=None):
+
+    if pattern:
+        ostream=iostring.StringIO()
     ix = loadIndex()
 
-    sys.stdout.write("!")
+    ostream.write("!")
     for dir in ix:
         dir = ix.absPath(dir)
         sys.stdout.write(dir)
         has, autoPath = hasToxAuto(dir)
         if has:
             cnt = AutoContent(autoPath)
-            if 't' in opts:  # show .TAGS?
+            ostream.write(" [.TAGS: %s] " % (','.join(cnt.tags())))
+            ostream.write(cnt.desc())
+            
+        ostream.write("\n")
 
-                sys.stdout.write(" [.TAGS: %s] " % (','.join(cnt.tags())))
-
-            if 'd' in opts:  # show .DESC?
-                sys.stdout.write(cnt.desc())
-
-        sys.stdout.write("\n")
+    if pattern:
+        # Match the pattern and print matches
 
 
 if __name__ == "__main__":
@@ -474,8 +474,8 @@ if __name__ == "__main__":
                    help="Print matches in plain mode")
     p.add_argument("--auto", "--autoedit", action='store_true', dest='autoedit',
                    help="Edit the local .tox-auto, create first if missing")
-    p.add_argument("-t", "--report", action='store_true', dest='do_report', help="Generate report from .tox-auto content") 
-    p.add_argument("pattern", nargs='?', help="Glob pattern to match against index")
+    p.add_argument("-g", "--grep", action='store_true', dest='do_grep', help="Match dirnames and .tox-auto search properties against a regular expression") 
+    p.add_argument("pattern", nargs='?', help="Pattern to match ")
     p.add_argument(
         "N", nargs='?', help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
     origStdout = sys.stdout
@@ -496,8 +496,8 @@ if __name__ == "__main__":
         createEmptyIndex()
         empty = False
 
-    if args.do_report:
-        printReport('dt')
+    if args.do_grep:
+        printGrep(args.pattern)
         empty = False
 
     if args.autoedit:
