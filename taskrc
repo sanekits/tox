@@ -5,7 +5,7 @@ Python=$(which python2)
 
 unset _to_debug to_debug to_debugz _to_debugz to_run _to_run
 
-ToxHome=${ToxHome:-$HOME/bin/tox-py}
+ToxHome=${HOME}/mbig/tox-py
 
 function _to_debug {
     $Python -m pudb ${ToxHome}/tox_core.py "$@"
