@@ -136,19 +136,27 @@ class IndexContent(list):
         """ Returns matches of items in the index. """
 
         xs = IndexedSet()
-        for path in self:
-            for frag in path.split('/'):
-                if fnmatch.fnmatch(frag, patterns[0]):
-                    # If fullDirname is set, we'll render an absolute path.
-                    # Or... if the relative path is not a dir, we'll also
-                    # render it as absolute.  This allows for cases where an
-                    # outer index path happens to match a local relative path
-                    # which isn't indexed.
-                    if fullDirname or not isdir(path):
-                        xs.add(self.absPath(path))
-                    else:
-                        xs.add(path)
+        # Identify all the potential matches, filter by all patterns:
+        cand_paths=self[:]
+        for pattern in patterns:
+            qual_paths=[]
+            for path in cand_paths:
+                for frag in path.split('/'):
+                    if fnmatch.fnmatch(frag, pattern):
+                        # If fullDirname is set, we'll render an absolute path.
+                        # Or... if the relative path is not a dir, we'll also
+                        # render it as absolute.  This allows for cases where an
+                        # outer index path happens to match a local relative path
+                        # which isn't indexed.
+                        if fullDirname or not isdir(path):
+                            qual_paths.append(self.absPath(path))
+                        else:
+                            qual_paths.append(path)
+            cand_paths=qual_paths
 
+        # Remove dupes:
+        for path in cand_paths:
+            xs.add(path)
         if self.outer is not None:
             # We're a chain, so recurse:
             pp = self.outer.matchPaths(patterns, True)
@@ -218,6 +226,8 @@ def findIndex(xdir=None):
     if isFileInDir(xdir, indexFileBase):
         return '/'.join([xdir, indexFileBase])
     # Recurse to parent dir:
+    if xdir == file_sys_root:
+        return None
     return findIndex(dirname(xdir))
 
 
@@ -235,7 +245,8 @@ def loadIndex(xdir=None, deep=False, inner=None):
     if not inner is None:
         inner.outer = ic
     if deep and not xdir == environ['HOME']:
-        ix = findIndex(dirname(ic.indexRoot()))
+        ix = findIndex(dirname(ic.indexRoot()))  # Bug?
+        #ix = findIndex(ic.indexRoot())
         if ix:
             loadIndex(dirname(ix), True, ic)
     return inner if not inner is None else ic
@@ -247,49 +258,56 @@ class ResolveMode(object):
     calc = 3    # calculate the match list and return it
 
 
-def resolvePatternToDir(patterns, N, mode=ResolveMode.userio):
+def resolvePatternToDir(patterns, N, K, mode=ResolveMode.userio):
     """ Match patterns to index, choose Nth result or prompt user, return dirname to caller. If printonly, don't prompt, just return the list of matches."""
     # patterns are 'and-ed' together: a dir must match all patterns to be included
     # in the search set.
-    # If N == '//', means 'global': search inner and outer indices
-    #    N == '/', means 'skip local': search outer indices only
+    # If K == '//', means 'global': search inner and outer indices
+    #    K == '/', means 'skip local': search outer indices only
 
-    pattern = patterns[0] # Todo: use all patterns
+    pattern_0 = patterns[0] if len(patterns) == 1 else '' # Todo: use all patterns
 
     # ix is the directory index:
-    ix = loadIndex(pwd(), N in ['//', '/'])
-    if (N == '/'):
+    ix = loadIndex(pwd(), K in ['//', '/'])
+    if (K == '/'):
         # Skip inner index, which can be achieved by walking the index chain up one level
         if ix.outer is not None:
             ix = ix.outer
 
-    if N in ['//', '/']:
-        N = None
+    if K in ['//', '/']:
+        K = None
 
     if ix.Empty():
-        return (None, "!No matches for pattern [%s]" % patterns)
+        return (None, "!No matches for [%s]" % '+'.join(patterns))
 
-    # If the pattern has slash and literally matches something in the index, then we accept it as the One True Match:
-    if '/' in pattern and pattern in ix:
-        rk = ix.absPath(pattern)
+    # If pattern_0 has slash and literally matches something in the index, then we accept it as the One True Match:
+    if '/' in pattern_0 and pattern_0 in ix:
+        rk = ix.absPath(pattern_0)
         return ([rk],r)
 
-    # Do we have any glob chars in pattern?
-    hasGlob = len([v for v in pattern if v in ['*', '?']])
-    if not hasGlob:
-        # no, make it a wildcard: our default behavior is 'match any part of path'
-        pattern = '*'+pattern+'*'
+    k_patterns = []
+    for p in patterns:
+        # Do we have any glob chars in pattern?
+        hasGlob = len([v for v in p if v in ['*', '?']])
+        if not hasGlob:
+            # no, make it a wildcard: our default behavior is 'match any part of path'
+            k_patterns.append('*'+p+'*')
+        else:
+            k_patterns.append(p)
 
-    mx = ix.matchPaths([pattern])
+    mx = ix.matchPaths(k_patterns)
     if len(mx) == 0:
-        return (None,"!No matches for pattern [%s]" % pattern)
+        return (None,"!No matches for pattern [%s]" % '+'.join(patterns))
     if N:
         N = int(N)
-        if N > len(mx):
+        if abs(N) > len(mx):
             sys.stderr.write("Warning: Offset %d exceeds number of matches for pattern [%s]. Selecting index %d instead.\n" % (
-                N, pattern, len(mx)))
-            N = len(mx)
-        rk = ix.absPath(mx[N-1])
+                N, '+'.join(patterns), len(mx)))
+            N = len(mx)*(1 if N>=0 else -1)
+        if N >= 1:
+            rk = ix.absPath(mx[N-1])
+        else:
+            rk = ix.absPath(mx[N])
         if mode == ResolveMode.printonly:
             return printMatchingEntries([rk],rk)
         return ([rk],rk)
@@ -462,10 +480,13 @@ def printGrep(pattern, ostream=None):
         # Match the pattern and print matches
         lines = ostream.getvalue().split('\n')
         for line in lines:
-            vv = re.search(pattern,line)
-            if vv:
-                matchCnt += 1
-                print(line)
+            try:
+                vv = re.search(pattern,line)
+                if vv:
+                    matchCnt += 1
+                    print(line)
+            except:
+                pass
 
         return matchCnt > 0
     
@@ -508,16 +529,23 @@ if __name__ == "__main__":
         import pudb
         pudb.set_trace()
 
+    N=None  # None or an integer indicating index-of-match
+    K=None  # Either None, '/' or //' to indicate scope operator
+    patterns=vargs
     try:
         # Dir index is the last arg if its an integer
         if len(vargs) > 1:
             N=int(vargs[-1])
-            patterns=vargs[0:-1]
-        else:
-            patterns=vargs
+            del vargs[-1]
     except:
-        N=None
-        patterns=vargs
+        pass
+
+    try:
+        if vargs[-1] in ['/','//']:
+            K=vargs[-1]
+            del vargs[-1]
+    except:
+        pass
     empty = True  # Have we done anything meaningful?
 
     if not findIndex():
@@ -525,7 +553,7 @@ if __name__ == "__main__":
         empty = False
 
     if args.do_grep:
-        vv = printGrep(patterns)
+        vv = printGrep(patterns[0] if len(patterns) else None)
         sys.exit( 0 if vv else 1)
         
 
@@ -565,7 +593,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     rmode=ResolveMode.printonly if args.printonly else ResolveMode.userio
-    res = resolvePatternToDir(patterns, N, rmode)
+    res = resolvePatternToDir(patterns, N, K, rmode)
     if res[1]:
         print(res[1])
 
