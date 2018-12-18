@@ -132,13 +132,13 @@ class IndexContent(list):
             for line in sorted(self):
                 f.write("%s\n" % line)
 
-    def matchPaths(self, pattern, fullDirname=False):
+    def matchPaths(self, patterns, fullDirname=False):
         """ Returns matches of items in the index. """
 
         xs = IndexedSet()
         for path in self:
             for frag in path.split('/'):
-                if fnmatch.fnmatch(frag, pattern):
+                if fnmatch.fnmatch(frag, patterns[0]):
                     # If fullDirname is set, we'll render an absolute path.
                     # Or... if the relative path is not a dir, we'll also
                     # render it as absolute.  This allows for cases where an
@@ -151,7 +151,7 @@ class IndexContent(list):
 
         if self.outer is not None:
             # We're a chain, so recurse:
-            pp = self.outer.matchPaths(pattern, True)
+            pp = self.outer.matchPaths(patterns, True)
             xs = xs.union(pp)
         return list(xs)
 
@@ -212,8 +212,9 @@ def findIndex(xdir=None):
         if not isChildDir(file_sys_root,xdir):
             if len(xdir) < len(file_sys_root):
                 return None
-            # If we've searched all the way up to the root /, try the user's HOME dir:
-            return findIndex(environ['HOME'])
+            if xdir!=file_sys_root:
+                # If we've searched all the way up to the root /, try the user's HOME dir:
+                return findIndex(environ['HOME'])
     if isFileInDir(xdir, indexFileBase):
         return '/'.join([xdir, indexFileBase])
     # Recurse to parent dir:
@@ -246,10 +247,14 @@ class ResolveMode(object):
     calc = 3    # calculate the match list and return it
 
 
-def resolvePatternToDir(pattern, N, mode=ResolveMode.userio):
-    """ Match pattern to index, choose Nth result or prompt user, return dirname to caller. If printonly, don't prompt, just return the list of matches."""
+def resolvePatternToDir(patterns, N, mode=ResolveMode.userio):
+    """ Match patterns to index, choose Nth result or prompt user, return dirname to caller. If printonly, don't prompt, just return the list of matches."""
+    # patterns are 'and-ed' together: a dir must match all patterns to be included
+    # in the search set.
     # If N == '//', means 'global': search inner and outer indices
     #    N == '/', means 'skip local': search outer indices only
+
+    pattern = patterns[0] # Todo: use all patterns
 
     # ix is the directory index:
     ix = loadIndex(pwd(), N in ['//', '/'])
@@ -262,7 +267,7 @@ def resolvePatternToDir(pattern, N, mode=ResolveMode.userio):
         N = None
 
     if ix.Empty():
-        return (None, "!No matches for pattern [%s]" % pattern)
+        return (None, "!No matches for pattern [%s]" % patterns)
 
     # If the pattern has slash and literally matches something in the index, then we accept it as the One True Match:
     if '/' in pattern and pattern in ix:
@@ -275,7 +280,7 @@ def resolvePatternToDir(pattern, N, mode=ResolveMode.userio):
         # no, make it a wildcard: our default behavior is 'match any part of path'
         pattern = '*'+pattern+'*'
 
-    mx = ix.matchPaths(pattern)
+    mx = ix.matchPaths([pattern])
     if len(mx) == 0:
         return (None,"!No matches for pattern [%s]" % pattern)
     if N:
@@ -488,14 +493,14 @@ if __name__ == "__main__":
     p.add_argument("--auto", "--autoedit", action='store_true', dest='autoedit',
                    help="Edit the local .tox-auto, create first if missing")
     p.add_argument("-g", "--grep", action='store_true', dest='do_grep', help="Match dirnames and .tox-auto search properties against a regular expression") 
-    p.add_argument("pattern", nargs='?', help="Pattern to match ")
-    p.add_argument(
-        "N", nargs='?', help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
+    #p.add_argument("patterns", nargs='?', help="Pattern(s) to match. If final arg is integer, it is treated as list index. ")
+    #p.add_argument(
+        # "N", nargs='?', help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
     origStdout = sys.stdout
 
     try:
         sys.stdout = sys.stderr
-        args = p.parse_args()
+        args,vargs = p.parse_known_args()
     finally:
         sys.stdout = origStdout
 
@@ -503,6 +508,16 @@ if __name__ == "__main__":
         import pudb
         pudb.set_trace()
 
+    try:
+        # Dir index is the last arg if its an integer
+        if len(vargs) > 1:
+            N=int(vargs[-1])
+            patterns=vargs[0:-1]
+        else:
+            patterns=vargs
+    except:
+        N=None
+        patterns=vargs
     empty = True  # Have we done anything meaningful?
 
     if not findIndex():
@@ -510,7 +525,7 @@ if __name__ == "__main__":
         empty = False
 
     if args.do_grep:
-        vv = printGrep(args.pattern)
+        vv = printGrep(patterns)
         sys.exit( 0 if vv else 1)
         
 
@@ -523,7 +538,7 @@ if __name__ == "__main__":
         empty = False
 
     if args.add_to_index:
-        addDirToIndex(args.pattern, args.recurse)
+        addDirToIndex(patterns[0] if len(patterns) else None, args.recurse)
         sys.exit(0)
 
     elif args.del_from_index:
@@ -542,15 +557,15 @@ if __name__ == "__main__":
         cleanIndex()
         empty = False
 
-    if not args.pattern:
+    if not patterns:
         if not empty:
             sys.exit(0)
 
-        sys.stderr.write("No search pattern specified, try --help\n")
+        sys.stderr.write("No search patterns specified, try --help\n")
         sys.exit(1)
 
     rmode=ResolveMode.printonly if args.printonly else ResolveMode.userio
-    res = resolvePatternToDir(args.pattern, args.N, rmode)
+    res = resolvePatternToDir(patterns, N, rmode)
     if res[1]:
         print(res[1])
 

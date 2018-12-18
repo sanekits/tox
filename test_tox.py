@@ -28,7 +28,7 @@ def test_2():
     with TmpSwap(os.getcwd(),tox_core_root+'/test1',os.chdir):
         with TmpSwap(file_sys_root,tox_core_root+'/test1',set_file_sys_root):
             ix = loadIndex('./a1')
-            pm = ix.matchPaths(pattern='c*')
+            pm = ix.matchPaths(patterns=['c*'])
             assert len(pm) == 1
 
             assert len(ix.matchPaths('*1')) == 6
@@ -41,6 +41,6 @@ def test_3():
 
 if __name__ == "__main__":
 
+    test_2()
     test_1()
     test_3()
-    test_2()
