@@ -227,7 +227,8 @@ def findIndex(xdir=None):
         return '/'.join([xdir, indexFileBase])
     # Recurse to parent dir:
     if xdir == file_sys_root:
-        return None
+        # If we've searched all the way up to the root /, try the user's HOME dir:
+        return findIndex(environ['HOME'])
     return findIndex(dirname(xdir))
 
 
@@ -409,6 +410,10 @@ def printIndexInfo(ixpath):
         printIndexInfo(ix.outer.path)
 
 
+def ensureHomeIndex():
+    if not os.path.isfile('/'.join([environ['HOME'],indexFileBase])):
+        createEmptyIndex()
+
 def createEmptyIndex():
     sys.stderr.write("First-time initialization: creating %s\n" %
                      indexFileBase)
@@ -548,9 +553,7 @@ if __name__ == "__main__":
         pass
     empty = True  # Have we done anything meaningful?
 
-    if not findIndex():
-        createEmptyIndex()
-        empty = False
+    ensureHomeIndex()
 
     if args.do_grep:
         vv = printGrep(patterns[0] if len(patterns) else None)
