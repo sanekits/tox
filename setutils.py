@@ -80,6 +80,7 @@ class IndexedSet(MutableSet):
     Otherwise, the API strives to be as complete a union of the
     :class:`list` and :class:`set` APIs as possible.
     """
+
     def __init__(self, other=None):
         self.item_index_map = dict()
         self.item_list = []
@@ -287,7 +288,7 @@ class IndexedSet(MutableSet):
         ret = self.union(*others)
         return ret.difference(self.intersection(*others))
 
-    __or__  = __ror__  = union
+    __or__ = __ror__ = union
     __and__ = __rand__ = intersection
     __sub__ = __rsub__ = difference
     __xor__ = __rxor__ = symmetric_difference

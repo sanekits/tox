@@ -4,7 +4,7 @@ import os
 import sys
 tox_core_root = os.path.dirname(os.path.realpath(__file__))
 
-sys.path.insert(0,tox_core_root)
+sys.path.insert(0, tox_core_root)
 
 import StringIO
 import re
@@ -19,13 +19,15 @@ from os import getcwd, environ
 from setutils import IndexedSet
 
 
-toxRootKey='ToxSysRoot'
-file_sys_root=os.getenv(toxRootKey,'/')
+toxRootKey = 'ToxSysRoot'
+file_sys_root = os.getenv(toxRootKey, '/')
 # Swap this for chroot-like testing
+
+
 def set_file_sys_root(d):
     global file_sys_root
-    prev=file_sys_root
-    file_sys_root=d
+    prev = file_sys_root
+    file_sys_root = d
     return prev
 
 indexFileBase = ".tox-index"
@@ -50,6 +52,7 @@ def dirContains(parent, unk):
 
 
 class IndexContent(list):
+
     def __init__(self, path):
         self.path = path
         self.protect = False
@@ -89,7 +92,7 @@ class IndexContent(list):
             r = self.indexRoot()
             # If the dir starts with our index root, remove that:
             if dir.index(r) == 0:
-                return dir[len(r)+1:]
+                return dir[len(r) + 1:]
         except:
             pass
         return dir
@@ -137,9 +140,9 @@ class IndexContent(list):
 
         xs = IndexedSet()
         # Identify all the potential matches, filter by all patterns:
-        cand_paths=self[:]
+        cand_paths = self[:]
         for pattern in patterns:
-            qual_paths=[]
+            qual_paths = []
             for path in cand_paths:
                 for frag in path.split('/'):
                     if fnmatch.fnmatch(frag, pattern):
@@ -152,7 +155,7 @@ class IndexContent(list):
                             qual_paths.append(self.absPath(path))
                         else:
                             qual_paths.append(path)
-            cand_paths=qual_paths
+            cand_paths = qual_paths
 
         # Remove dupes:
         for path in cand_paths:
@@ -204,30 +207,34 @@ def isFileInDir(dir, name):
     """ True if file 'name' is in 'dir' """
     return exists('/'.join([dir, name]))
 
-def isChildDir(parent,cand):
+
+def isChildDir(parent, cand):
     ''' Returns true if parent is an ancestor of cand. '''
     if cand.startswith(parent) and len(cand) > len(parent):
         return True
     return False
+
 
 def findIndex(xdir=None):
     """ Find the index containing current dir, or HOME/.tox-index, or None """
     if not xdir:
         xdir = pwd()
     global indexFileBase
-    if not isChildDir(file_sys_root,xdir):
+    if not isChildDir(file_sys_root, xdir):
         xdir = os.path.realpath(xdir)
-        if not isChildDir(file_sys_root,xdir):
+        if not isChildDir(file_sys_root, xdir):
             if len(xdir) < len(file_sys_root):
                 return None
-            if xdir!=file_sys_root:
-                # If we've searched all the way up to the root /, try the user's HOME dir:
+            if xdir != file_sys_root:
+                # If we've searched all the way up to the root /, try the
+                # user's HOME dir:
                 return findIndex(environ['HOME'])
     if isFileInDir(xdir, indexFileBase):
         return '/'.join([xdir, indexFileBase])
     # Recurse to parent dir:
     if xdir == file_sys_root:
-        # If we've searched all the way up to the root /, try the user's HOME dir:
+        # If we've searched all the way up to the root /, try the user's HOME
+        # dir:
         return findIndex(environ['HOME'])
     return findIndex(dirname(xdir))
 
@@ -266,12 +273,14 @@ def resolvePatternToDir(patterns, N, K, mode=ResolveMode.userio):
     # If K == '//', means 'global': search inner and outer indices
     #    K == '/', means 'skip local': search outer indices only
 
-    pattern_0 = patterns[0] if len(patterns) == 1 else '' # Todo: use all patterns
+    pattern_0 = patterns[0] if len(
+        patterns) == 1 else ''  # Todo: use all patterns
 
     # ix is the directory index:
     ix = loadIndex(pwd(), K in ['//', '/'])
     if (K == '/'):
-        # Skip inner index, which can be achieved by walking the index chain up one level
+        # Skip inner index, which can be achieved by walking the index chain up
+        # one level
         if ix.outer is not None:
             ix = ix.outer
 
@@ -281,62 +290,65 @@ def resolvePatternToDir(patterns, N, K, mode=ResolveMode.userio):
     if ix.Empty():
         return (None, "!No matches for [%s]" % '+'.join(patterns))
 
-    # If pattern_0 has slash and literally matches something in the index, then we accept it as the One True Match:
+    # If pattern_0 has slash and literally matches something in the index,
+    # then we accept it as the One True Match:
     if '/' in pattern_0 and pattern_0 in ix:
         rk = ix.absPath(pattern_0)
-        return ([rk],r)
+        return ([rk], r)
 
     k_patterns = []
     for p in patterns:
         # Do we have any glob chars in pattern?
         hasGlob = len([v for v in p if v in ['*', '?']])
         if not hasGlob:
-            # no, make it a wildcard: our default behavior is 'match any part of path'
-            k_patterns.append('*'+p+'*')
+            # no, make it a wildcard: our default behavior is 'match any part
+            # of path'
+            k_patterns.append('*' + p + '*')
         else:
             k_patterns.append(p)
 
     mx = ix.matchPaths(k_patterns)
     if len(mx) == 0:
-        return (None,"!No matches for pattern [%s]" % '+'.join(patterns))
+        return (None, "!No matches for pattern [%s]" % '+'.join(patterns))
     if N:
         N = int(N)
         if abs(N) > len(mx):
             sys.stderr.write("Warning: Offset %d exceeds number of matches for pattern [%s]. Selecting index %d instead.\n" % (
                 N, '+'.join(patterns), len(mx)))
-            N = len(mx)*(1 if N>=0 else -1)
+            N = len(mx) * (1 if N >= 0 else -1)
         if N >= 1:
-            rk = ix.absPath(mx[N-1])
+            rk = ix.absPath(mx[N - 1])
         else:
             rk = ix.absPath(mx[N])
         if mode == ResolveMode.printonly:
-            return printMatchingEntries([rk],rk)
-        return ([rk],rk)
+            return printMatchingEntries([rk], rk)
+        return ([rk], rk)
 
     if mode == ResolveMode.printonly:
         return printMatchingEntries(mx, ix)
 
     if len(mx) == 1:
         rk = ix.absPath(mx[0])
-        return ([rk],rk)
+        return ([rk], rk)
 
     if mode == ResolveMode.calc:
-        return ([mx,None])
+        return ([mx, None])
 
     return promptMatchingEntry(mx, ix)
 
 
 def printMatchingEntries(mx, ix):
     px = []
-    for i in range(1, len(mx)+1):
-        px.append(mx[i-1])
+    for i in range(1, len(mx) + 1):
+        px.append(mx[i - 1])
     return (mx, '!' + '\n'.join(px))
+
 
 def promptMatchingEntry(mx, ix):
     # Prompt user from matching entries:
     px = []
-    for i in range(1, len(mx)+1):
-        px.append("%d: %s" % (i, mx[i-1]))
+    for i in range(1, len(mx) + 1):
+        px.append("%d: %s" % (i, mx[i - 1]))
     px.append("Select index ")
     resultIndex = 1
     while True:
@@ -357,8 +369,7 @@ def promptMatchingEntry(mx, ix):
         else:
             break
 
-    return (mx, ix.absPath(mx[resultIndex-1]))
-
+    return (mx, ix.absPath(mx[resultIndex - 1]))
 
 
 def addDirToIndex(xdir, recurse):
@@ -376,7 +387,8 @@ def addDirToIndex(xdir, recurse):
     xAdd(cwd)
     if recurse:
         for r, dirs, f in os.walk(cwd):
-            dirs[:] = [d for d in dirs if not d[0] == '.']  # ignore hidden dirs
+            dirs[:] = [d for d in dirs if not d[
+                0] == '.']  # ignore hidden dirs
             for d in dirs:
                 xAdd(r + '/' + d)
 
@@ -411,8 +423,9 @@ def printIndexInfo(ixpath):
 
 
 def ensureHomeIndex():
-    if not os.path.isfile('/'.join([environ['HOME'],indexFileBase])):
+    if not os.path.isfile('/'.join([environ['HOME'], indexFileBase])):
         createEmptyIndex()
+
 
 def createEmptyIndex():
     sys.stderr.write("First-time initialization: creating %s\n" %
@@ -430,7 +443,6 @@ def createEmptyIndex():
     if not isfile(path):
         with open(path, 'w') as f:
             f.write('#protect\n')
-
 
 
 def createIndexHere():
@@ -461,11 +473,12 @@ def editToxAutoHere(templateFile):
     # Invoke the editor:
     print("!!$EDITOR %s" % '.tox-auto')
 
+
 def printGrep(pattern, ostream=None):
     if pattern:
-        ostream=StringIO.StringIO()
+        ostream = StringIO.StringIO()
     else:
-        ostream=sys.stdout
+        ostream = sys.stdout
     ix = loadIndex()
     sys.stdout.write("!")
     for dir in ix:
@@ -478,7 +491,7 @@ def printGrep(pattern, ostream=None):
             ostream.write(cnt.desc())
         ostream.write("\n")
 
-    matchCnt=0
+    matchCnt = 0
     if not pattern:
         return len(ix) > 0
     else:
@@ -486,7 +499,7 @@ def printGrep(pattern, ostream=None):
         lines = ostream.getvalue().split('\n')
         for line in lines:
             try:
-                vv = re.search(pattern,line)
+                vv = re.search(pattern, line)
                 if vv:
                     matchCnt += 1
                     print(line)
@@ -494,7 +507,7 @@ def printGrep(pattern, ostream=None):
                 pass
 
         return matchCnt > 0
-    
+
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser('tox - quick directory-changer.')
@@ -518,15 +531,16 @@ if __name__ == "__main__":
                    help="Print matches in plain mode")
     p.add_argument("--auto", "--autoedit", action='store_true', dest='autoedit',
                    help="Edit the local .tox-auto, create first if missing")
-    p.add_argument("-g", "--grep", action='store_true', dest='do_grep', help="Match dirnames and .tox-auto search properties against a regular expression") 
+    p.add_argument("-g", "--grep", action='store_true', dest='do_grep',
+                   help="Match dirnames and .tox-auto search properties against a regular expression")
     #p.add_argument("patterns", nargs='?', help="Pattern(s) to match. If final arg is integer, it is treated as list index. ")
-    #p.add_argument(
-        # "N", nargs='?', help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
+    # p.add_argument(
+    # "N", nargs='?', help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
     origStdout = sys.stdout
 
     try:
         sys.stdout = sys.stderr
-        args,vargs = p.parse_known_args()
+        args, vargs = p.parse_known_args()
     finally:
         sys.stdout = origStdout
 
@@ -534,20 +548,20 @@ if __name__ == "__main__":
         import pudb
         pudb.set_trace()
 
-    N=None  # None or an integer indicating index-of-match
-    K=None  # Either None, '/' or //' to indicate scope operator
-    patterns=vargs
+    N = None  # None or an integer indicating index-of-match
+    K = None  # Either None, '/' or //' to indicate scope operator
+    patterns = vargs
     try:
         # Dir index is the last arg if its an integer
         if len(vargs) > 1:
-            N=int(vargs[-1])
+            N = int(vargs[-1])
             del vargs[-1]
     except:
         pass
 
     try:
-        if vargs[-1] in ['/','//']:
-            K=vargs[-1]
+        if vargs[-1] in ['/', '//']:
+            K = vargs[-1]
             del vargs[-1]
     except:
         pass
@@ -557,8 +571,7 @@ if __name__ == "__main__":
 
     if args.do_grep:
         vv = printGrep(patterns[0] if len(patterns) else None)
-        sys.exit( 0 if vv else 1)
-        
+        sys.exit(0 if vv else 1)
 
     if args.autoedit:
         editToxAutoHere('/'.join([tox_core_root, 'tox-auto-default-template']))
@@ -595,7 +608,7 @@ if __name__ == "__main__":
         sys.stderr.write("No search patterns specified, try --help\n")
         sys.exit(1)
 
-    rmode=ResolveMode.printonly if args.printonly else ResolveMode.userio
+    rmode = ResolveMode.printonly if args.printonly else ResolveMode.userio
     res = resolvePatternToDir(patterns, N, K, rmode)
     if res[1]:
         print(res[1])
