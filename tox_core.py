@@ -129,11 +129,12 @@ class IndexContent(list):
 
     def write(self):
         # Write the index back to file
-        with open(self.path, 'w') as f:
+        with open(self.path+'.tmp', 'w') as f:
             if self.protect:
                 f.write("#protect\n")
             for line in sorted(self):
                 f.write("%s\n" % line)
+        os.rename(self.path+'.tmp',self.path)
 
     def matchPaths(self, patterns, fullDirname=False):
         """ Returns matches of items in the index. """
