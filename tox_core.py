@@ -57,23 +57,33 @@ class IndexContent(list):
         self.path = path
         self.protect = False
         self.outer = None  # If we are chaining indices
+        self.aliases = {} # An index entry like [path] : alias-1 alias-2... defines both path and shortcut names
 
         with open(self.path, 'r') as f:
-            all = f.read().split('\n')
-            all = [l for l in all if len(l) > 0]
-            if len(all):
-                if all[0].startswith('#protect'):
+            al2=[]
+            al1 = f.read().split('\n')
+            for line in al1:
+                if len(line):
+                    vv = [ v.strip() for v in line.split(':') ] # Separate paths from aliases
+                    for alias in vv[1:]:  
+                        self.aliases[alias]=vv[0]
+                    al2.append(vv[0])
+            # 
+            if len(al2):
+                if al2[0].startswith('#protect'):
                     self.protect = True
-                    self.extend(all[1:])
+                    self.extend(al2[1:])
                 else:
-                    self.extend(all)
+                    self.extend(al2)
 
     def Empty(self):
         """ Return true if index chain has no entries at all """
         if len(self):
             return False
+            # << EARLY RETURN
         if self.outer is None:
             return True
+            # << EARLY RETURN
         return self.outer.Empty()
 
     def indexRoot(self):
@@ -84,6 +94,7 @@ class IndexContent(list):
         """ Return an absolute path if 'relDir' isn't already one """
         if relDir[0] == '/':
             return relDir
+            # << EARLY RETURN
         return '/'.join([self.indexRoot(), relDir])
 
     def relativePath(self, dir):
@@ -93,6 +104,7 @@ class IndexContent(list):
             # If the dir starts with our index root, remove that:
             if dir.index(r) == 0:
                 return dir[len(r) + 1:]
+                # << EARLY RETURN
         except:
             pass
         return dir
@@ -101,15 +113,24 @@ class IndexContent(list):
         dir = self.relativePath(xdir)
         if dir in self:
             return False  # no change
+            # << EARLY RETURN
         n = bisect.bisect(self, dir)
         self.insert(n, dir)
         return True
+
+    def addAlias(self,xdir,xalias):
+        self.aliases[xalias]=xdir
 
     def delDir(self, xdir):
         dir = self.relativePath(xdir)
         if not dir in self:
             return False  # no change
+            # << EARLY RETURN
         self.remove(dir)
+        for k in self.aliases:
+            if self.aliases[k] == xdir:
+                del self.aliases[k]
+                break
         return True
 
     def clean(self):
@@ -132,8 +153,20 @@ class IndexContent(list):
         with open(self.path, 'w') as f:
             if self.protect:
                 f.write("#protect\n")
+            revIx = {}
+            for alias in self.aliases:
+                p = self.aliases[alias]
+                if p in revIx:
+                    revIx[p].append(alias)
+                else:
+                    revIx[p] = [alias]
+
+            def makeAliases(path):
+                if path in revIx:
+                    return '   :' + ' '.join(revIx[path])
+                return ''
             for line in sorted(self):
-                f.write("%s\n" % line)
+                f.write("%s%s\n" % (line, makeAliases(line)))
 
     def matchPaths(self, patterns, fullDirname=False):
         """ Returns matches of items in the index. """
@@ -193,6 +226,7 @@ class AutoContent(list):
         """ Return the value of .TAGS as array of strings """
         if not self.tagsLoc:
             return []
+            # << EARLY RETURN
         raw = self[self.tagsLoc[0]][self.tagsLoc[1]:]
         return raw.split()
 
@@ -200,6 +234,7 @@ class AutoContent(list):
         """ Return the value of .DESC as a string """
         if self.descLoc is None:
             return ""
+            # << EARLY RETURN
         return self[self.descLoc[0]][self.descLoc[1]:].rstrip()
 
 
@@ -212,6 +247,7 @@ def isChildDir(parent, cand):
     ''' Returns true if parent is an ancestor of cand. '''
     if cand.startswith(parent) and len(cand) > len(parent):
         return True
+            # << EARLY RETURN
     return False
 
 
@@ -225,17 +261,22 @@ def findIndex(xdir=None):
         if not isChildDir(file_sys_root, xdir):
             if len(xdir) < len(file_sys_root):
                 return None
+                # << EARLY RETURN
             if xdir != file_sys_root:
                 # If we've searched all the way up to the root /, try the
                 # user's HOME dir:
                 return findIndex(environ['HOME'])
+                # << EARLY RETURN
+
     if isFileInDir(xdir, indexFileBase):
         return '/'.join([xdir, indexFileBase])
+        # << EARLY RETURN
     # Recurse to parent dir:
     if xdir == file_sys_root:
         # If we've searched all the way up to the root /, try the user's HOME
         # dir:
         return findIndex(environ['HOME'])
+        # << EARLY RETURN
     return findIndex(dirname(xdir))
 
 
@@ -248,6 +289,7 @@ def loadIndex(xdir=None, deep=False, inner=None):
     ix = findIndex(xdir)
     if not ix:
         return None
+        # << EARLY RETURN
 
     ic = IndexContent(ix)
     if not inner is None:
@@ -289,15 +331,22 @@ def resolvePatternToDir(patterns, N, K, mode=ResolveMode.userio):
 
     if ix.Empty():
         return (None, "!No matches for [%s]" % '+'.join(patterns))
+        # << EARLY RETURN
 
     # If pattern_0 has slash and literally matches something in the index,
     # then we accept it as the One True Match:
     if '/' in pattern_0 and pattern_0 in ix:
         rk = ix.absPath(pattern_0)
-        return ([rk], r)
+        return ([rk], rk)
+        # << EARLY RETURN
 
     k_patterns = []
     for p in patterns:
+        if p in ix.aliases:
+            # An alias is a shortcut to corresponding dir, no need for the whole search.
+            path=ix.absPath(ix.aliases[p])
+            sys.stderr.write("Alias '%s' matched\n" % p)
+            return ([path],path)
         # Do we have any glob chars in pattern?
         hasGlob = len([v for v in p if v in ['*', '?']])
         if not hasGlob:
@@ -310,6 +359,7 @@ def resolvePatternToDir(patterns, N, K, mode=ResolveMode.userio):
     mx = ix.matchPaths(k_patterns)
     if len(mx) == 0:
         return (None, "!No matches for pattern [%s]" % '+'.join(patterns))
+        # << EARLY RETURN
     if N:
         N = int(N)
         if abs(N) > len(mx):
@@ -322,7 +372,9 @@ def resolvePatternToDir(patterns, N, K, mode=ResolveMode.userio):
             rk = ix.absPath(mx[N])
         if mode == ResolveMode.printonly:
             return printMatchingEntries([rk], rk)
+            # << EARLY RETURN
         return ([rk], rk)
+        # << EARLY RETURN
 
     if mode == ResolveMode.printonly:
         return printMatchingEntries(mx, ix)
@@ -330,9 +382,11 @@ def resolvePatternToDir(patterns, N, K, mode=ResolveMode.userio):
     if len(mx) == 1:
         rk = ix.absPath(mx[0])
         return ([rk], rk)
+        # << EARLY RETURN
 
     if mode == ResolveMode.calc:
         return ([mx, None])
+        # << EARLY RETURN
 
     return promptMatchingEntry(mx, ix)
 
@@ -356,6 +410,7 @@ def promptMatchingEntry(mx, ix):
             resultIndex = prompt('\n'.join(px), '1')
         except KeyboardInterrupt:
             return (mx, "!echo Ctrl+C")
+            # << EARLY RETURN
         try:
             if resultIndex.lower() == 'q':
                 sys.exit(1)
@@ -372,25 +427,35 @@ def promptMatchingEntry(mx, ix):
     return (mx, ix.absPath(mx[resultIndex - 1]))
 
 
-def addDirToIndex(xdir, recurse):
+def addDirToIndex(xalias, recurse):
     """ Add dir to active index """
-    cwd = xdir if xdir else pwd()
+    cwd = pwd()
     ix = loadIndex()  # Always load active index for this, even if
     # the dir we're adding is out of tree
 
-    def xAdd(path):
+    def xAdd(path,xalias):
+        update=False
         if ix.addDir(path):
-            ix.write()
             sys.stderr.write("%s added to %s\n" % (path, ix.path))
+            update = True
         else:
             sys.stderr.write("%s is already in the index\n" % path)
-    xAdd(cwd)
+        if xalias:
+            if xalias not in ix.aliases:
+                ix.addAlias(path,xalias)
+                sys.stderr.write("%s added as alias for %s\n" % (xalias,path))
+                update = True
+            else:
+                sys.stderr.write("%s is already an alias for %s\n" % (xalias,path))
+        if update:
+            ix.write()
+    xAdd(cwd,xalias)
     if recurse:
         for r, dirs, f in os.walk(cwd):
             dirs[:] = [d for d in dirs if not d[
                 0] == '.']  # ignore hidden dirs
             for d in dirs:
-                xAdd(r + '/' + d)
+                xAdd(r + '/' + d,None)
 
 
 def delCwdFromIndex():
@@ -447,12 +512,13 @@ def createEmptyIndex():
 
 def createIndexHere():
     if isfile('./' + indexFileBase):
-        sys.stderr.write("An index already exists in %s" %
+        sys.stderr.write("An index already exists in %s\n" %
                          environ.get('PWD', getcwd()))
         return False
+        # << EARLY RETURN
     with open(indexFileBase, 'w') as f:
         f.write('#protect\n')
-        sys.stderr.write("Index has been created in %s" % pwd())
+        sys.stderr.write("Index has been created in %s\n" % pwd())
 
 
 def cleanIndex():
@@ -494,6 +560,7 @@ def printGrep(pattern, ostream=None):
     matchCnt = 0
     if not pattern:
         return len(ix) > 0
+        # << EARLY RETURN
     else:
         # Match the pattern and print matches
         lines = ostream.getvalue().split('\n')
@@ -518,7 +585,7 @@ if __name__ == "__main__":
     p.add_argument("-r", "--recurse", action='store_true', dest='recurse',
                    help="Recursive mode (e.g. for -a add all dirs in subtree)", default=False)
     p.add_argument("-a", "--add-dir", action='store_true', dest='add_to_index',
-                   help="Add dir to index [default=current dir, -r recurses to add all]")
+                   help="Add current dir to index [followed by shortcut alias, if any]")
     p.add_argument("-d", "--del-dir", action='store_true', dest='del_from_index',
                    help="Delete current dir from index")
     p.add_argument("-c", "--cleanup", action='store_true',
