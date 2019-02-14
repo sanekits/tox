@@ -69,24 +69,12 @@ These things have NOT been implemented yet:
 
 * Bug - no cd if arg matches index entry exactly
 
-* Add - Allow a '#rootpath=/parent/path' property in .tox-index, so that 
-    a symlink to the index will be loadable from alien locations and correctly interpreted.
-
-* Add .TAGS and .DESC support for .tox-auto
-
 * Add -i for 'print matching entries, plus info about each (# of names, last modified, contents of .tox-auto'
+
+* Add incremental matching when presenting directory list and prompting for entry #
 
 * Add 'prune all matches'
 
-* Add "print matching dirs without prompt or fluff" (for use in scripts, etc.)
-
-* Allow this:
-    `to bin /`
-    "Search immediate ancestors "
-
-* Allow this:
-    `to -a /etc/init.d`
-    "Add an arbitrary dir to active index"
 
 
 
