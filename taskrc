@@ -5,7 +5,7 @@ Python=$(which python2)
 
 unset _to_debug to_debug to_debugz _to_debugz to_run _to_run
 
-ToxHome=${HOME}/mbig/tox-py
+ToxHome=${ToxHome:-${taskrc_dir}}
 
 function _to_debug {
     $Python -m pudb ${ToxHome}/tox_core.py "$@"
@@ -32,7 +32,4 @@ function to_test_debug {
 
 alias to_run='set -f; _to_run'
 
-function to_reload {
-    source ${ToxHome}/taskrc
-}
 
