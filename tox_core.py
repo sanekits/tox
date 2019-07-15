@@ -424,26 +424,12 @@ def printIndexInfo(ixpath):
 
 
 def ensureHomeIndex():
-    if not os.path.isfile('/'.join([environ['HOME'], indexFileBase])):
-        createEmptyIndex()
-
-
-def createEmptyIndex():
-    sys.stderr.write("First-time initialization: creating %s\n" %
-                     indexFileBase)
-    tgtDir = environ.get('HOME', '/tmp')
-    cwd = pwd()
-    if dirContains(tgtDir, cwd):
-        # The current dir is within the HOME tree?
-        path = '/'.join([tgtDir, indexFileBase])
-
-    else:
-        # Put it in the root, if we can
-        path = '/' + indexFileBase
-
-    if not isfile(path):
-        with open(path, 'w') as f:
-            f.write('#protect\n')
+    global indexFileBase
+    loc = '/'.join((environ['HOME'], indexFileBase))
+    if not os.path.isfile(loc):
+        with open(loc,'w') as ff:
+            sys.stderr.write("Tox first-time initialization: creating %s\n" % loc)
+            ff.write("# This is your HOME dir .tox-index, try 'to --help' \n")
 
 
 def createIndexHere():

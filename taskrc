@@ -1,11 +1,20 @@
 # taskrc for tox-py
 # vim: filetype=sh :
 
-Python=$(which python2)
+#  Use taskrc -h for help on built-in taskrc functions.
+#  To provide help for definitions in this file, add #Help tags, e.g.:
+#    function my_func {
+     #Help: my_func is my first and only function...
 
-unset _to_debug to_debug to_debugz _to_debugz to_run _to_run
+Python=$(which python2.7 || which python2)
 
-ToxHome=${HOME}/mbig/tox-py
+unset _to_debug to_debug to_debugz _to_debugz to_run _to_run TOXHOME ToxPython
+
+ToxHome=${taskrc_dir}
+TOXHOME=${ToxHome}
+#Help
+
+source ${ToxHome}/tox-completion.bash
 
 function _to_debug {
     $Python -m pudb ${ToxHome}/tox_core.py "$@"
@@ -13,6 +22,7 @@ function _to_debug {
 }
 
 alias to_debug='set -f; _to_debug'
+    #Help
 
 # function _to_debugz {
     # $Python ${ToxHome}/tox_core.py -z "$@"
@@ -24,15 +34,14 @@ function _to_run {
     $Python ${ToxHome}/tox_core.py "$@"
     set +f;
 }
-alias to_run='set -f; _to_run'
+
 
 function to_test_debug {
+    #Help
     $Python -m pudb ${ToxHome}/test_tox.py "$@"
 }
 
 alias to_run='set -f; _to_run'
+    #Help
 
-function to_reload {
-    source ${ToxHome}/taskrc
-}
 
