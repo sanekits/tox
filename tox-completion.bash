@@ -56,6 +56,7 @@ if [[ -f ${TOXHOME}/tox_core.py ]]; then
         fi
         set +f
     }
+    [[ -f $HOME/.tox-index ]] || ( touch $HOME/.tox-index &>/dev/null )
     alias to='set -f;tox_w'
     alias toa='set -f; tox_w -a'
     alias tod='set -f; tox_w -d'
