@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -6,7 +6,7 @@ tox_core_root = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.insert(0, tox_core_root)
 
-import StringIO
+from io import StringIO
 import re
 import bisect
 import argparse
@@ -512,7 +512,7 @@ def printGrep(pattern, ostream=None):
 
 
 if __name__ == "__main__":
-    p = argparse.ArgumentParser('tox - quick directory-changer.')
+    p = argparse.ArgumentParser('''tox - quick directory-changer {python%d.%d}''' % (sys.version_info[0],sys.version_info[1]))
     p.add_argument("-z", "--debug", action='store_true', dest='debugger',
                    help="Run debugger in main")
     p.add_argument("-x", "--ix-here", action='store_true', dest='create_ix_here',
