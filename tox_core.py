@@ -15,7 +15,8 @@ import shutil
 from getpass import getpass
 from subprocess import call
 from os.path import dirname, isdir, realpath, exists, isfile
-from os import getcwd, environ
+from os import getcwd, environ, stat
+from pwd import getpwuid
 from setutils import IndexedSet
 
 
@@ -216,8 +217,22 @@ def isChildDir(parent, cand):
     return False
 
 
-def findIndex(xdir=None):
-    """ Find the index containing current dir, or HOME/.tox-index, or None """
+def ownerCheck(xdir,filename,only_mine):
+    ''' Apply ownership rule to file xdir/filename, such that:
+       - If only_mine is True, owner of the file must match os.environ['USER']
+       - If only_mine is False, we don't care who owns it.
+       return True if rule check passes. '''
+    if not only_mine:
+        return True
+    owner = stat( '/'.join((xdir,filename))).st_uid
+    user = os.environ['USER']
+    return getpwuid(owner).pw_name == user
+
+def findIndex(xdir=None,only_mine=True):
+    """ Find the index containing current dir or 'xdir' if supplied.  Return HOME/.tox-index as a last resort, or None if there's no indices whatsoever. 
+
+    only_mine: ignore indices which don't have $USER as owner on the file.
+    """
     if not xdir:
         xdir = pwd()
     global indexFileBase
@@ -230,7 +245,7 @@ def findIndex(xdir=None):
                 # If we've searched all the way up to the root /, try the
                 # user's HOME dir:
                 return findIndex(environ['HOME'])
-    if isFileInDir(xdir, indexFileBase):
+    if isFileInDir(xdir, indexFileBase) and ownerCheck(xdir,indexFileBase,only_mine):
         return '/'.join([xdir, indexFileBase])
     # Recurse to parent dir:
     if xdir == file_sys_root:
