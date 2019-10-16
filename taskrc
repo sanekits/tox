@@ -6,7 +6,7 @@
 #    function my_func {
      #Help: my_func is my first and only function...
 
-Python=$(which python2.7 || which python2)
+Python=$(which python3.8 || which python3.7 || which python3.6 )
 
 unset _to_debug to_debug to_debugz _to_debugz to_run _to_run TOXHOME ToxPython
 
