@@ -10,6 +10,7 @@ Admin functions allow adding/removing index entries quickly. Indices can be loca
 
 Whenever you use `to` to change directories, you can use `popd` to return to the previous dir without specifying its name.
 
+
 ## Usage
 
 
