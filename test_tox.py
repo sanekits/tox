@@ -20,7 +20,7 @@ class TmpSwap(object):
 
 
 def test_1():
-    print "tox_core_root=" + tox_core_root
+    print("tox_core_root=" + tox_core_root)
     loadIndex()
 
 

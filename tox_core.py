@@ -229,7 +229,7 @@ def ownerCheck(xdir,filename,only_mine):
     return getpwuid(owner).pw_name == user
 
 def findIndex(xdir=None,only_mine=True):
-    """ Find the index containing current dir or 'xdir' if supplied.  Return HOME/.tox-index as a last resort, or None if there's no indices whatsoever. 
+    """ Find the index containing current dir or 'xdir' if supplied.  Return HOME/.tox-index as a last resort, or None if there's no indices whatsoever.
 
     only_mine: ignore indices which don't have $USER as owner on the file.
     """
@@ -310,7 +310,7 @@ def resolvePatternToDir(patterns, N, K, mode=ResolveMode.userio):
     # then we accept it as the One True Match:
     if '/' in pattern_0 and pattern_0 in ix:
         rk = ix.absPath(pattern_0)
-        return ([rk], r)
+        return ([rk], rk)
 
     k_patterns = []
     for p in patterns:
@@ -376,7 +376,7 @@ def promptMatchingEntry(mx, ix):
             if resultIndex.lower() == 'q':
                 sys.exit(1)
             resultIndex = int(resultIndex)
-        except SystemExit as e:
+        except SystemExit:
             raise
         except:
             continue
@@ -402,7 +402,7 @@ def addDirToIndex(xdir, recurse):
             sys.stderr.write("%s is already in the index\n" % path)
     xAdd(cwd)
     if recurse:
-        for r, dirs, f in os.walk(cwd):
+        for r, dirs, _ in os.walk(cwd):
             dirs[:] = [d for d in dirs if not d[
                 0] == '.']  # ignore hidden dirs
             for d in dirs:
@@ -468,7 +468,7 @@ def hasToxAuto(dir):
 
 
 def editToxAutoHere(templateFile):
-    has, path = hasToxAuto(".")
+    has, _ = hasToxAuto(".")
     if not has:
         # Create from template file first time:
         shutil.copyfile(templateFile, './.tox-auto')
@@ -478,7 +478,7 @@ def editToxAutoHere(templateFile):
 
 def printGrep(pattern, ostream=None):
     if pattern:
-        ostream = StringIO.StringIO()
+        ostream = StringIO()
     else:
         ostream = sys.stdout
     ix = loadIndex()
