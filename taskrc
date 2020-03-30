@@ -16,6 +16,18 @@ TOXHOME=${ToxHome}
 
 source ${ToxHome}/tox-completion.bash
 
+function docker_init_dev {
+    #Help Run this inside docker shell to setup for development
+    echo
+}
+
+function docker_build_tox {
+    #Help build the Docker image for tox-dev
+    cd $taskrc_dir
+    docker build . --tag lesmatheson0/main:tox-dev || return
+    docker run --rm -it  lesmatheson0/main:tox-dev bash
+}
+
 function _to_debug {
     $Python -m pudb ${ToxHome}/tox_core.py "$@"
     set +f;
