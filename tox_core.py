@@ -512,6 +512,7 @@ def printGrep(pattern, ostream=None):
 
 
 if __name__ == "__main__":
+    sys.setrecursionlimit(24)
     p = argparse.ArgumentParser('''tox - quick directory-changer {python%d.%d}''' % (sys.version_info[0],sys.version_info[1]))
     p.add_argument("-z", "--debug", action='store_true', dest='debugger',
                    help="Run debugger in main")
