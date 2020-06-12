@@ -25,6 +25,16 @@ file_sys_root = os.getenv(toxRootKey, '/')
 # Swap this for chroot-like testing
 
 
+enable_stubs=False
+
+def stub(msg,break_cond=False):
+    if not enable_stubs:
+        return
+    sys.stderr.write(f"STUB: [{msg}]\n")
+    if break_cond:
+        import pdb
+        pdb.set_trace()
+
 def set_file_sys_root(d):
     global file_sys_root
     prev = file_sys_root
@@ -233,6 +243,7 @@ def findIndex(xdir=None,only_mine=True):
 
     only_mine: ignore indices which don't have $USER as owner on the file.
     """
+    stub(f"findIndex:242({xdir},{only_mine})")
     if not xdir:
         xdir = pwd()
     global indexFileBase
@@ -262,6 +273,7 @@ def loadIndex(xdir=None, deep=False, inner=None):
         raise RuntimeError("non-dir %s passed to loadIndex()" % xdir)
 
     ix = findIndex(xdir)
+    stub("findIndex:ret:272 %s" % ix)
     if not ix:
         return None
 
@@ -270,6 +282,8 @@ def loadIndex(xdir=None, deep=False, inner=None):
         inner.outer = ic
     if deep and not xdir == environ['HOME']:
         ix = findIndex(dirname(ic.indexRoot()))  # Bug?
+        stub(f'findIndex:ret:281 {ix}')
+                
         #ix = findIndex(ic.indexRoot())
         if ix:
             loadIndex(dirname(ix), True, ic)
@@ -512,7 +526,7 @@ def printGrep(pattern, ostream=None):
 
 
 if __name__ == "__main__":
-    sys.setrecursionlimit(24)
+    sys.setrecursionlimit(48)
     p = argparse.ArgumentParser('''tox - quick directory-changer {python%d.%d}''' % (sys.version_info[0],sys.version_info[1]))
     p.add_argument("-z", "--debug", action='store_true', dest='debugger',
                    help="Run debugger in main")
