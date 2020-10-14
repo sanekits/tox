@@ -12,6 +12,7 @@ unset _to_debug to_debug to_debugz _to_debugz to_run _to_run TOXHOME ToxPython
 
 ToxHome=${taskrc_dir}
 TOXHOME=${ToxHome}
+PDB=${PDB:-pudb}
 #Help
 
 source ${ToxHome}/tox-completion.bash
@@ -29,7 +30,7 @@ function docker_build_tox {
 }
 
 function _to_debug {
-    $Python -m pudb ${ToxHome}/tox_core.py "$@"
+    $Python -m $PDB ${ToxHome}/tox_core.py "$@"
     set +f;
 }
 
@@ -50,7 +51,7 @@ function _to_run {
 
 function to_test_debug {
     #Help
-    $Python -m pudb ${ToxHome}/test_tox.py "$@"
+    $Python -m $PDB ${ToxHome}/test_tox.py "$@"
 }
 
 alias to_run='set -f; _to_run'

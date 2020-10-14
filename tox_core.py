@@ -51,6 +51,9 @@ def dirContains(parent, unk):
     """ Does parent dir contain unk dir? """
     return realpath(unk).startswith(realpath(parent))
 
+def trace(msg):
+    sys.stderr.write(f'\033[;33m{msg}\033[;0m\n')
+
 
 class IndexContent(list):
 
@@ -247,11 +250,15 @@ def findIndex(xdir=None,only_mine=True):
                 return findIndex(environ['HOME'])
     if isFileInDir(xdir, indexFileBase) and ownerCheck(xdir,indexFileBase,only_mine):
         return '/'.join([xdir, indexFileBase])
+    if isFileInDir(xdir, indexFileBase) and xdir==environ['HOME']:
+        return '/'.join([xdir,indexFileBase])
     # Recurse to parent dir:
     if xdir == file_sys_root:
         # If we've searched all the way up to the root /, try the user's HOME
         # dir:
         return findIndex(environ['HOME'])
+
+    #trace(f"xdir={xdir}, HOME={environ['HOME']}, file_sys_root={file_sys_root}")
     return findIndex(dirname(xdir))
 
 
