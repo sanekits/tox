@@ -1,13 +1,12 @@
 # tox-completion.bash
 # vim: filetype=sh :
 
-# Recommended: source this from .bashrc 
+# Recommended: source this from .bashrc
 
 # Requires: you have a ~/bin/tox-py directory containing tox_core.py, or
 # you set $TOXHOME=[dir] before sourcing tox-completion.bash
 
-
-export ToxPython=$(which python3.9 || python3.8 || python3.7 || which python3.6 || which python3.5 || which python)
+export ToxPython=$(which python3.9 || which python3.8 || which python3.7 || which python3.6 || which python3.5 || which python)
 export LmHome=${LmHome:-$HOME}
 
 export TOXHOME=${TOXHOME:-${LmHome}/bin/tox-py}
@@ -88,7 +87,7 @@ _tox()  # Here's our readline completion handler
 
     local opts="$(egrep -v '^#protect' ${toxfile} )"
 
-    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )        
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
     return 0
 }
 
