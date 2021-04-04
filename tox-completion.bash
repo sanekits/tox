@@ -7,7 +7,7 @@
 # you set $TOXHOME=[dir] before sourcing tox-completion.bash
 
 
-export ToxPython=$(which python3.7 || which python3.6 || which python3.5 || which python)
+export ToxPython=$(which python3.9 || python3.8 || python3.7 || which python3.6 || which python3.5 || which python)
 export LmHome=${LmHome:-$HOME}
 
 export TOXHOME=${TOXHOME:-${LmHome}/bin/tox-py}
