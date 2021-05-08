@@ -12,6 +12,7 @@ RUN yum install -y openssh-clients
 
 RUN python3.7 -m pip install --upgrade pip &&  \
     python3.7 -m pip install \
+    pytest \
     pudb \
     debugpy
 

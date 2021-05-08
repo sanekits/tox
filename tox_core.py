@@ -456,7 +456,7 @@ def ensureHomeIndex():
 def createIndexHere():
     if isfile('./' + indexFileBase):
         sys.stderr.write("An index already exists in %s" %
-                         environ.get('PWD', getcwd()))
+                        environ.get('PWD', getcwd()))
         return False
     with open(indexFileBase, 'w') as f:
         f.write('#protect\n')

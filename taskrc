@@ -45,10 +45,10 @@ function container_prepare {
             cd home.${USER} || die 101
             cp $HOME/.bashrc . || die 102
             cp $HOME/.inputrc . || die 103
-            rsync -av $HOME/.vim . || die 104
+            rsync -LKav $HOME/.vim .
             cp $HOME/.gitconfig . || die 105
-            rsync -av $HOME/.ssh . || die 106
-            touch bash_history
+            rsync -LKav $HOME/.ssh . || die 106
+            touch .bash_history
             mkdir -p .vimtmp
         ) || die
         echo "home.${USER}" > current_user_home
@@ -60,8 +60,14 @@ function container_prepare {
 }
 
 function inner_shell() {
-    #Help inner_shell() - run a shell as $USER in tox-testenv container
-    ( cd $taskrc_dir && docker-compose exec --user $USER tox-testenv bash -l "$@" )
+    #Help inner_shell() - run a shell as $USER in tox-testenv container, or --root to run as root
+    local username="$USER"
+    [[ $1 == --root ]] && { username=root; shift; }
+    (
+        echo "Login as $username:"
+        cd $taskrc_dir &&  \
+         docker-compose exec --user $username tox-testenv bash -l "$@"
+    )
 }
 
 debug_tox() {
