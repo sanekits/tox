@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-
+# tox_core.py
 import os
 import sys
 tox_core_root = os.path.dirname(os.path.realpath(__file__))
@@ -555,8 +554,8 @@ if __name__ == "__main__":
         sys.stdout = origStdout
 
     if args.debugger:
-        import pudb
-        pudb.set_trace()
+        sys.stderr.write("--debug breakpoint\n")
+        breakpoint()
 
     N = None  # None or an integer indicating index-of-match
     K = None  # Either None, '/' or //' to indicate scope operator

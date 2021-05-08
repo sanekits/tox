@@ -1,10 +1,8 @@
 # taskrc for tox-py
 # vim: filetype=sh :
 
-#  Use taskrc -h for help on built-in taskrc functions.
-#  To provide help for definitions in this file, add #Help tags, e.g.:
-#    function my_func {
-     #Help: my_func is my first and only function...
+
+[[ -z $taskrc_dir ]] && { echo Force-init of taskrc_dir to $PWD; export taskrc_dir=$PWD; }
 
 Python=$(which python3.8 || which python3.7 || which python3.6 )
 
@@ -50,6 +48,8 @@ function container_prepare {
             rsync -av $HOME/.vim . || die 104
             cp $HOME/.gitconfig . || die 105
             rsync -av $HOME/.ssh . || die 106
+            touch bash_history
+            mkdir -p .vimtmp
         ) || die
         echo "home.${USER}" > current_user_home
         docker-compose exec tox-testenv /app/container_prepare_inner.sh || die 3
@@ -60,7 +60,13 @@ function container_prepare {
 }
 
 function inner_shell() {
-    ( cd $taskrc_dir && docker-compose exec --user $USER tox-testenv bash )
+    #Help inner_shell() - run a shell as $USER in tox-testenv container
+    ( cd $taskrc_dir && docker-compose exec --user $USER tox-testenv bash -l "$@" )
+}
+
+debug_tox() {
+    #Help debug_tox() run tox_core.py with debugpy using ./debug-tox
+    /app/debug-tox "$@"
 }
 
 function _to_debug {

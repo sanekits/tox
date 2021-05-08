@@ -1,0 +1,7 @@
+#!/bin/bash
+
+Python=/opt/bb/bin/python3.7
+
+cmd="/app/tox_core.py $@"
+echo "Waiting for debugger on port 5690:, cmd=$cmd"
+$Python -m debugpy --listen 0.0.0.0:5690 --wait-for-client ${cmd}

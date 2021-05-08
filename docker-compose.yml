@@ -8,3 +8,4 @@ services:
         command: sleep infinity
         working_dir: /app
         container_name: tox-testenv
+        ports: [ 5690:5690 ]

@@ -37,10 +37,11 @@ echo "init_homedir($CurUser) starting:"
 die() { echo "ERROR: \$@" >&2; exit 1; }
 echo "HOME=\$HOME"
 cd \$HOME || die 201
+echo USER=$CurUser >> .bash_profile
 Src="\$(cd -)"
 echo "Src=\$Src"
 rsync -av \$Src/home.\$USER/ . || die 202
-ln -sf /host-projects ./projects
+ln -sf /host-projects ./projects || die 203
 echo "init_homedir: Ok"
 EXOF
 }

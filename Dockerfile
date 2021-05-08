@@ -8,7 +8,7 @@ RUN apt-get install -y \
     vim \
     rsync
 
-#RUN apt-get install -y
+RUN yum install -y openssh-clients
 
 RUN python3.7 -m pip install --upgrade pip &&  \
     python3.7 -m pip install \
