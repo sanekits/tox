@@ -1,0 +1,10 @@
+version: "3.4"
+services:
+    tox-testenv:
+        build: .
+        volumes:
+            - "${PWD}:/app"
+            - "/c/Projects:/host-projects"
+        command: sleep infinity
+        working_dir: /app
+        container_name: tox-testenv

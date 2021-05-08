@@ -25,7 +25,7 @@ file_sys_root = os.getenv(toxRootKey, '/')
 # Swap this for chroot-like testing
 
 
-def set_file_sys_root(d):
+def set_file_sys_root(d:str) ->str:
     global file_sys_root
     prev = file_sys_root
     file_sys_root = d
@@ -34,32 +34,32 @@ def set_file_sys_root(d):
 indexFileBase = ".tox-index"
 
 
-def pwd():
+def pwd() -> str:
     """ Return the $PWD value, which is nicer inside
     trees of symlinks, but fallback to getcwd if it's not
     set """
     return environ.get('PWD', getcwd())
 
 
-def prompt(msg, defValue):
+def prompt(msg:str, defValue:str) -> str:
     sys.stderr.write("%s" % msg)
     res = getpass("[%s]:" % defValue, sys.stderr)
     return res if res else defValue
 
 
-def dirContains(parent, unk):
+def dirContains(parent:str, unk:str) -> bool:
     """ Does parent dir contain unk dir? """
     return realpath(unk).startswith(realpath(parent))
 
-def trace(msg):
+def trace(msg:str):
     sys.stderr.write(f'\033[;33m{msg}\033[;0m\n')
 
 
 class IndexContent(list):
 
-    def __init__(self, path):
-        self.path = path
-        self.protect = False
+    def __init__(self, path:str):
+        self.path:str = path
+        self.protect:bool = False
         self.outer = None  # If we are chaining indices
 
         with open(self.path, 'r') as f:
@@ -80,17 +80,17 @@ class IndexContent(list):
             return True
         return self.outer.Empty()
 
-    def indexRoot(self):
+    def indexRoot(self) -> str:
         """ Return dir of our index file """
         return dirname(self.path)
 
-    def absPath(self, relDir):
+    def absPath(self, relDir:str) -> str:
         """ Return an absolute path if 'relDir' isn't already one """
         if relDir[0] == '/':
             return relDir
         return '/'.join([self.indexRoot(), relDir])
 
-    def relativePath(self, dir):
+    def relativePath(self, dir:str ) ->str:
         """ Convert dir to be relative to our index root """
         try:
             r = self.indexRoot()
@@ -101,7 +101,7 @@ class IndexContent(list):
             pass
         return dir
 
-    def addDir(self, xdir):
+    def addDir(self, xdir: str) -> bool:
         dir = self.relativePath(xdir)
         if dir in self:
             return False  # no change
@@ -109,7 +109,7 @@ class IndexContent(list):
         self.insert(n, dir)
         return True
 
-    def delDir(self, xdir):
+    def delDir(self, xdir:str) -> bool:
         dir = self.relativePath(xdir)
         if not dir in self:
             return False  # no change

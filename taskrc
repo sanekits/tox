@@ -17,16 +17,50 @@ PDB=${PDB:-pudb}
 
 source ${ToxHome}/tox-completion.bash
 
-function docker_init_dev {
-    #Help Run this inside docker shell to setup for development
-    echo
+red() {
+    echo -en "\033[;31m$@\033[;0m"
+}
+green() {
+    echo -en "\033[;32m$@\033[;0m"
+}
+yellow() {
+    echo -en "\033[;33m$@\033[;0m"
 }
 
-function docker_build_tox {
+
+function docker_build {
     #Help build the Docker image for tox-dev
     cd $taskrc_dir
-    docker build . --tag lesmatheson0/main:tox-dev || return
-    docker run --rm -it  lesmatheson0/main:tox-dev bash
+    docker-compose build --pull || return
+    echo "Build complete, run 'container_prepare' to setup for dev ops"
+}
+
+function container_prepare {
+    #Help after docker_build(), use container_prepare() to setup for dev ops
+    (
+        cd $taskrc_dir || die 1
+        [[ -f /.dockerenv ]] && die "This should not run in a container"
+        docker-compose up -d tox-testenv || die "Failed to start tox-testenv container"
+        # Setup 'home.$USER' to clone user env stuff into container:
+        mkdir -p home.${USER}
+        (
+            cd home.${USER} || die 101
+            cp $HOME/.bashrc . || die 102
+            cp $HOME/.inputrc . || die 103
+            rsync -av $HOME/.vim . || die 104
+            cp $HOME/.gitconfig . || die 105
+            rsync -av $HOME/.ssh . || die 106
+        ) || die
+        echo "home.${USER}" > current_user_home
+        docker-compose exec tox-testenv /app/container_prepare_inner.sh || die 3
+
+
+        green "container_prepare(): Ok"
+    )
+}
+
+function inner_shell() {
+    ( cd $taskrc_dir && docker-compose exec --user $USER tox-testenv bash )
 }
 
 function _to_debug {
@@ -37,11 +71,6 @@ function _to_debug {
 alias to_debug='set -f; _to_debug'
     #Help
 
-# function _to_debugz {
-    # $Python ${ToxHome}/tox_core.py -z "$@"
-    # set +f;
-# }
-# alias to_debugz='set -f; _to_debugz -z'
 
 function _to_run {
     $Python ${ToxHome}/tox_core.py "$@"
