@@ -1,7 +1,63 @@
 #!/bin/bash
+# :vim filetype=sh :
+#
+#  Launch tox in debug mode
+#
+#   debug-tox -- [args to app]    # Load tox_core, Wait for connect on 5690
+#   debug-tox --pytest [test script.py]  # Load given test with debugger enabled, wait for connect on 5690
+set -ue
 
 Python=/opt/bb/bin/python3.7
+App=/app/tox_core.py
+Port=5690
 
-cmd="/app/tox_core.py $@"
-echo "Waiting for debugger on port 5690:, cmd=$cmd"
-$Python -m debugpy --listen 0.0.0.0:5690 --wait-for-client ${cmd}
+canonpath() {
+    ( cd -L -- "$(dirname -- $0)"; echo "$(pwd -P)/$(basename -- $0)" )
+}
+
+Script=$(canonpath "$0")
+Scriptdir=$(dirname -- "$Script")
+
+red() {
+    echo -en "\033[;31m$@\033[;0m"
+}
+green() {
+    echo -en "\033[;32m$@\033[;0m"
+}
+yellow() {
+    echo -en "\033[;33m$@\033[;0m"
+}
+
+die() {
+    red "$@\n" >&2
+    exit 1
+}
+
+hello() {
+    local cmd="$@"
+    yellow "Waiting for debugger on port ${Port}:, cmd=\"$cmd\", cwd=$PWD\n" >&2
+}
+
+set +u
+if [ -z "$sourceMe" ]; then
+    set +u
+    cmd="/app/tox_core.py"
+
+    while [[ -n $1 ]]; do
+        case $1 in
+            --pytest)
+                shift
+                $Python -m debugpy --listen 0.0.0.0:${Port} --wait-for-client -m pytest "$@"
+                exit $?
+                ;;
+            *)
+                cmd="$cmd $1"
+                ;;
+        esac
+        shift
+    done
+    set -u
+    hello ${cmd}
+    $Python -m debugpy --listen 0.0.0.0:${Port} --wait-for-client ${cmd}
+    exit $?
+fi
