@@ -6,6 +6,18 @@ tox_core_root = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.insert(0, tox_core_root)
 
+''' Debugging tips:
+    1.  Set tox_debugpy=1 to enable debugpy listening on 5690
+    2.  Set break_on_main=1 to enable stop in __main__ block instead of here '''
+if int(os.environ.get('tox_debugpy',0)) > 0:
+    import debugpy
+    dbgport=5690
+    debugpy.listen(('0.0.0.0',dbgport))
+    sys.stderr.write(f"Waiting for python debugpy client on port {dbgport}\n")
+    debugpy.wait_for_client()
+    if int(os.environ.get('break_on_main',0)) < 1:
+        breakpoint()
+
 from io import StringIO
 import re
 import bisect
@@ -520,17 +532,12 @@ def printGrep(pattern, ostream=None):
 
 
 if __name__ == "__main__":
+    if int(os.environ.get('break_on_main',0)) > 0:
+        breakpoint()
     sys.setrecursionlimit(48)
     p = argparse.ArgumentParser(
         """tox - quick directory-changer {python%d.%d}"""
         % (sys.version_info[0], sys.version_info[1])
-    )
-    p.add_argument(
-        "-z",
-        "--debug",
-        action="store_true",
-        dest="debugger",
-        help="Run debugger in main",
     )
     p.add_argument(
         "-x",
@@ -606,9 +613,6 @@ if __name__ == "__main__":
     finally:
         sys.stdout = origStdout
 
-    if args.debugger:
-        sys.stderr.write("--debug breakpoint\n")
-        breakpoint()
 
     N = None  # None or an integer indicating index-of-match
     K = None  # Either None, '/' or //' to indicate scope operator

@@ -47,7 +47,7 @@ function container_prepare {
             cp $HOME/.inputrc . || die 103
             rsync -LKav $HOME/.vim .
             cp $HOME/.gitconfig . || die 105
-            rsync -LKav $HOME/.ssh . || die 106
+            rsync -LKav $HOME/.ssh . ||   red "ERROR running rsync on .ssh\n" >&2
             touch .bash_history
             mkdir -p .vimtmp
         ) || die
@@ -55,7 +55,8 @@ function container_prepare {
         docker-compose exec tox-testenv /app/container_prepare_inner.sh || die 3
 
 
-        green "container_prepare(): Ok"
+        green "container_prepare(): Ok\n"
+        green "Use inner_shell <--root> to open shell\n"
     )
 }
 

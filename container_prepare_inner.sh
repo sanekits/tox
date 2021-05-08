@@ -44,7 +44,16 @@ set -x
 for xx in .vim .bashrc bash_profile .inputrc .bash_history; do
     [[ -e /app/home.$CurUser/\${xx} ]] && ln -sf /app/home.$CurUser/\${xx} .
 done
+mkdir -p .vimtmp
 ln -sf /host-projects ./projects || die 203
+mkdir -p .taskrc/bin
+cat > .taskrc/app.taskrc <<QEOF
+    PATH=/app:$PATH
+    alias py=/opt/bb/bin/python3.7
+    export TOXHOME=/app
+    source /app/tox-completion.bash
+    alias tox='set -f;tox_w'
+QEOF
 echo "init_homedir: Ok"
 EXOF
 }
@@ -71,7 +80,6 @@ fi
 ZEOF
     ln -sf /app/home.${CurUser}/.inputrc
     ln -sf /app/home.${CurUser}/.vim
-    ln -sf /app/home.${CurUser}/.bashrc
 
     )
 }

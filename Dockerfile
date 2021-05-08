@@ -6,7 +6,8 @@ RUN apt-get install -y \
     bash-completion \
     git \
     vim \
-    rsync
+    rsync \
+    tree
 
 RUN yum install -y openssh-clients
 

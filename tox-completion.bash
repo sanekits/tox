@@ -62,7 +62,7 @@ if [[ -f ${TOXHOME}/tox_core.py ]]; then
     alias tog='set -f; tox_w -g'
     alias tor='set -f; tox_w --report td'
     alias tox='set -f;tox_w'
-    alias toz='$ToxPython ~/bin/tox-py/tox_core.py -z "$@"'  # Debugger invocation
+    alias toz='tox_debugpy=1 $ToxPython $TOXHOME/tox_core.py  "$@"'  # Debugger invocation
 
 else
 	function tox_w {
@@ -91,6 +91,6 @@ _tox()  # Here's our readline completion handler
     return 0
 }
 
-complete -F _tox tox
-complete -F _tox to
+#complete -F _tox tox
+#complete -F _tox to
 
