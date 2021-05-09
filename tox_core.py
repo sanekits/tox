@@ -491,8 +491,8 @@ def promptMatchingEntry(mx:IndexContent, ix:List[str]) ->Tuple[IndexContent,str]
     try:
         prompt("foo:", 0,lambda c: prompt_editor(vstrbuff,dx,c))
     except UserSelectionTrap as s:
-        logging.info(f"promptMatchingEntry() returns {'mx',s.args[0]}")
-        return (mx, s.args[0])
+        logging.info(f"promptMatchingEntry() returns {'mx',s.args[0][0]}")
+        return (mx, s.args[0][0])
     except KeyboardInterrupt:
         logging.info("User Ctrl+C in promptMatchingEntry")
         return (mx, "!echo Ctrl+C")
