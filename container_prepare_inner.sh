@@ -52,7 +52,9 @@ cat > .taskrc/app.taskrc <<QEOF
     alias py=/opt/bb/bin/python3.7
     export TOXHOME=/app
     source /app/tox-completion.bash
-    alias tox='set -f;tox_w'
+    sourceMe=1 source /app/loop_cmd
+
+    #alias tox='set -f;tox_w'
 QEOF
 echo "init_homedir: Ok"
 EXOF

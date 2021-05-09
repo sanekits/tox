@@ -1,8 +1,21 @@
 # tox_core.py
 import os
 import sys
+import tty
+import termios
+from typing import Callable, List, Dict, Tuple
+from collections import OrderedDict
+
+import logging
+logging.basicConfig(filename=f"{os.environ.get('HOME','/tmp')}/.tox_core.log",
+                            filemode='a',
+                            format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                            datefmt='%H:%M:%S',
+                            level=logging.DEBUG)
+
 
 tox_core_root = os.path.dirname(os.path.realpath(__file__))
+logging.info(f"tox startup, args={sys.argv}, cwd={os.getcwd()}, __file__={__file__}")
 
 sys.path.insert(0, tox_core_root)
 
@@ -24,7 +37,6 @@ import bisect
 import argparse
 import fnmatch
 import shutil
-from getpass import getpass
 from subprocess import call
 from os.path import dirname, isdir, realpath, exists, isfile
 from os import getcwd, environ, stat
@@ -32,10 +44,15 @@ from pwd import getpwuid
 from setutils import IndexedSet
 
 
-toxRootKey = "ToxSysRoot"
-file_sys_root = os.getenv(toxRootKey, "/")
+toxRootKey:str = "ToxSysRoot"
+file_sys_root:str = os.getenv(toxRootKey, "/")
 # Swap this for chroot-like testing
 
+stub_counter:int =0
+def stub(*msg) -> None:
+    global stub_counter
+    stub_counter+=1
+    sys.stderr.write(f"\033[;33mstub[{stub_counter}] <{msg}>\033[;0m\n")
 
 def set_file_sys_root(d: str) -> str:
     global file_sys_root
@@ -43,8 +60,17 @@ def set_file_sys_root(d: str) -> str:
     file_sys_root = d
     return prev
 
+class UserTrap(BaseException):
+    ...
+class UserUpTrap(UserTrap):
+    ...
+class UserDownTrap(UserTrap):
+    ...
+class UserSelectionTrap(UserTrap):
+    ...
 
-indexFileBase = ".tox-index"
+
+indexFileBase:str = ".tox-index"
 
 
 def pwd() -> str:
@@ -53,19 +79,23 @@ def pwd() -> str:
     set"""
     return environ.get("PWD", getcwd())
 
-
-def prompt(msg: str, defValue: str) -> str:
-    sys.stderr.write("%s" % msg)
-    res = getpass("[%s]:" % defValue, sys.stderr)
-    return res if res else defValue
-
+def getraw_kbd() -> str:
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        while True:
+            ch = sys.stdin.read(1)
+            yield ch
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 def dirContains(parent: str, unk: str) -> bool:
     """ Does parent dir contain unk dir? """
     return realpath(unk).startswith(realpath(parent))
 
 
-def trace(msg: str):
+def trace(msg: str) -> None:
     sys.stderr.write(f"\033[;33m{msg}\033[;0m\n")
 
 
@@ -85,7 +115,7 @@ class IndexContent(list):
                 else:
                     self.extend(all)
 
-    def Empty(self):
+    def Empty(self) -> bool:
         """ Return true if index chain has no entries at all """
         if len(self):
             return False
@@ -129,7 +159,8 @@ class IndexContent(list):
         self.remove(dir)
         return True
 
-    def clean(self):
+    def clean(self) -> None:
+        # Remove dead paths from index
         okPaths = set()
         for path in self:
             full = self.absPath(path)
@@ -143,7 +174,7 @@ class IndexContent(list):
         self.write()
         sys.stderr.write("Cleaned index %s, %s dirs remain\n" % (self.path, len(self)))
 
-    def write(self):
+    def write(self) ->None:
         # Write the index back to file
         with open(self.path + ".tmp", "w") as f:
             if self.protect:
@@ -152,7 +183,7 @@ class IndexContent(list):
                 f.write("%s\n" % line)
         os.rename(self.path + ".tmp", self.path)
 
-    def matchPaths(self, patterns, fullDirname=False):
+    def matchPaths(self, patterns:List[str], fullDirname:str=False) ->List[str]:
         """ Returns matches of items in the index. """
 
         xs = IndexedSet()
@@ -220,19 +251,19 @@ class AutoContent(list):
         return self[self.descLoc[0]][self.descLoc[1] :].rstrip()
 
 
-def isFileInDir(dir, name):
+def isFileInDir(dir:str, name:str) -> bool:
     """ True if file 'name' is in 'dir' """
     return exists("/".join([dir, name]))
 
 
-def isChildDir(parent, cand):
+def isChildDir(parent:str, cand:str) -> bool:
     """ Returns true if parent is an ancestor of cand. """
     if cand.startswith(parent) and len(cand) > len(parent):
         return True
     return False
 
 
-def ownerCheck(xdir, filename, only_mine):
+def ownerCheck(xdir:str, filename:str, only_mine:bool) -> bool:
     """Apply ownership rule to file xdir/filename, such that:
     - If only_mine is True, owner of the file must match os.environ['USER']
     - If only_mine is False, we don't care who owns it.
@@ -244,7 +275,7 @@ def ownerCheck(xdir, filename, only_mine):
     return getpwuid(owner).pw_name == user
 
 
-def findIndex(xdir=None, only_mine=True):
+def findIndex(xdir:str=None, only_mine:bool=True) -> IndexContent:
     """Find the index containing current dir or 'xdir' if supplied.  Return HOME/.tox-index as a last resort, or None if there's no indices whatsoever.
 
     only_mine: ignore indices which don't have $USER as owner on the file.
@@ -271,17 +302,17 @@ def findIndex(xdir=None, only_mine=True):
         # dir:
         return findIndex(environ["HOME"])
 
-    # trace(f"xdir={xdir}, HOME={environ['HOME']}, file_sys_root={file_sys_root}")
+    logging.info(f"findIndex returns: xdir={xdir}, HOME={environ['HOME']}, file_sys_root={file_sys_root}")
     return findIndex(dirname(xdir))
 
 
-def loadIndex(xdir=None, deep=False, inner=None):
+def loadIndex(xdir:str=None, deep:bool=False, inner=None) -> IndexContent:
     """Load the index for current xdir.  If deep is specified,
     also search up the tree for additional indices"""
     if xdir and not isdir(xdir):
         raise RuntimeError("non-dir %s passed to loadIndex()" % xdir)
 
-    ix = findIndex(xdir)
+    ix:IndexContent = findIndex(xdir)
     if not ix:
         return None
 
@@ -302,7 +333,7 @@ class ResolveMode(object):
     calc = 3  # calculate the match list and return it
 
 
-def resolvePatternToDir(patterns, N, K, mode=ResolveMode.userio):
+def resolvePatternToDir(patterns:List[str], N:str, K:str, mode:ResolveMode=ResolveMode.userio) -> Tuple[List,str]:
     """ Match patterns to index, choose Nth result or prompt user, return dirname to caller. If printonly, don't prompt, just return the list of matches."""
     # patterns are 'and-ed' together: a dir must match all patterns to be included
     # in the search set.
@@ -312,7 +343,7 @@ def resolvePatternToDir(patterns, N, K, mode=ResolveMode.userio):
     pattern_0 = patterns[0] if len(patterns) == 1 else ""  # Todo: use all patterns
 
     # ix is the directory index:
-    ix = loadIndex(pwd(), K in ["//", "/"])
+    ix:IndexContent = loadIndex(pwd(), K in ["//", "/"])
     if K == "/":
         # Skip inner index, which can be achieved by walking the index chain up
         # one level
@@ -380,33 +411,69 @@ def printMatchingEntries(mx, ix):
         px.append(mx[i - 1])
     return (mx, "!" + "\n".join(px))
 
+def displayMatchingEntries(dx:OrderedDict):
+    for i in dx:
+        sys.stderr.write(f"{i}: {dx[i][0]}\n")
 
-def promptMatchingEntry(mx, ix):
-    # Prompt user from matching entries:
-    px = []
-    for i in range(1, len(mx) + 1):
-        px.append("%d: %s" % (i, mx[i - 1]))
-    px.append("Select index ")
-    resultIndex = 1
-    while True:
-        try:
-            resultIndex = prompt("\n".join(px), "1")
-        except KeyboardInterrupt:
-            return (mx, "!echo Ctrl+C")
-        try:
-            if resultIndex.lower() == "q":
-                sys.exit(1)
-            resultIndex = int(resultIndex)
-        except SystemExit:
-            raise
-        except:
-            continue
-        if resultIndex < 1 or resultIndex > len(mx):
-            sys.stderr.write("Invalid index: %d\n" % resultIndex)
-        else:
-            break
+def prompt(msg:str,defValue:str,handler:Callable[[str],str]) -> str:
+    # Ansi codes from https://tldp.org/HOWTO/Bash-Prompt-HOWTO/x361.html
+    #  esc[nnD << Move cursor left nn columns
+    #  esc[K << Clear to end of line
+    #  esc[s << Save cursor position
+    #  esc[u << Restore saved cursor position
+    try:
+        for c in getraw_kbd():
+            sys.stderr.write(f"\033[99D\033[K{msg}: {defValue}")
+            sys.stderr.flush()
+            value = handler(c)
+    finally:
+        sys.stderr.write('\n')
 
-    return (mx, ix.absPath(mx[resultIndex - 1]))
+def prompt_handler(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
+    # this is called from prompt() for each char read from kbd
+    logging.info(f"prompt_handler({c})")
+    if ord(c) == 3:
+        raise KeyboardInterrupt
+    vstrbuff[0]=vstrbuff[0]+c
+    try:
+        v = dx.get(vstrbuff[0],None) or dx[f"%{vstrbuff[0]}"]
+        logging.info(f"User input \"{vstrbuff[0]}\" selects entry [{v}]")
+        if v[1]:  # Is there something special we should throw?
+            raise v[1]
+        raise UserSelectionTrap(v[0])
+    except KeyError:
+        if ord(c)==ord('\r'):
+            logging.info('[enter]: reset buffer')
+            vstrbuff[0]=""
+            return ''
+        logging.info(f"User input [{vstrbuff[0]}] doesn't match anything")
+        return vstrbuff[0]
+
+def promptMatchingEntry(mx:IndexContent, ix:List[str]) ->Tuple[IndexContent,str]:
+    # Prompt user to select from set of matching entries.  Return
+    # tuple of (mx, selected-entry)
+    def get_selector():
+        c = 0
+        while c >= 0:
+            c += 1
+            yield c
+
+    sel = iter(get_selector())
+    dx = OrderedDict( {str(next(sel)):(m,None) for m in mx} )
+    dx['%q'] = ('<Quit>',KeyboardInterrupt)
+    dx['%\\'] = ('<Up Tree>',UserUpTrap)
+    dx['%/'] = ('<Down Tree>', UserDownTrap)
+    displayMatchingEntries(dx)
+    vstrbuff=[""]
+    try:
+        prompt("foo:", 0,lambda c: prompt_handler(vstrbuff,dx,c))
+    except UserSelectionTrap as s:
+        logging.info(f"promptMatchingEntry() returns {'mx',s.args[0]}")
+        return (mx, s.args[0])
+    except KeyboardInterrupt:
+        logging.info("User Ctrl+C in promptMatchingEntry")
+        return (mx, "!echo Ctrl+C")
+
 
 
 def addDirToIndex(xdir, recurse):
@@ -482,12 +549,12 @@ def cleanIndex():
     ix.clean()
 
 
-def hasToxAuto(dir):
+def hasToxAuto(dir:str) -> bool:
     xf = "/".join([dir, ".tox-auto"])
     return isfile(xf), xf
 
 
-def editToxAutoHere(templateFile):
+def editToxAutoHere(templateFile:str) -> None:
     has, _ = hasToxAuto(".")
     if not has:
         # Create from template file first time:
