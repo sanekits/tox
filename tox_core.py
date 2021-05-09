@@ -422,18 +422,39 @@ def prompt(msg:str,defValue:str,handler:Callable[[str],str]) -> str:
     #  esc[s << Save cursor position
     #  esc[u << Restore saved cursor position
     try:
-        for c in getraw_kbd():
-            sys.stderr.write(f"\033[99D\033[K{msg}: {defValue}")
+        value=defValue
+        while True:
+            sys.stderr.write(f"\033[99D \033[K \033[;33m{msg}:\033[;0m {value}")
             sys.stderr.flush()
+            c = next(getraw_kbd())
             value = handler(c)
     finally:
         sys.stderr.write('\n')
 
-def prompt_handler(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
+def prompt_editor(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
     # this is called from prompt() for each char read from kbd
-    logging.info(f"prompt_handler({c})")
-    if ord(c) == 3:
+    logging.info(f"prompt_editor({ord(c)}:{c})")
+    if ord(c) == 3: # Ctrl+C
         raise KeyboardInterrupt
+    elif ord(c) == 127:  # Backspace
+        vstrbuff[0] = vstrbuff[0][:-1]
+        logging.info(f"Erase, now: {vstrbuff[0]}")
+        return vstrbuff[0]
+    elif ord(c) == 13: # Enter
+        if vstrbuff[0] == '0':
+            raise UserSelectionTrap(dx['0'])
+        else:
+            return vstrbuff[0]
+    elif ord(c) == 27:  # Esc
+        logging.info('[esc]: reset buffer')
+        vstrbuff[0]=""
+        return vstrbuff[0]
+    elif vstrbuff[0]=="0":
+        if c=='0':
+            raise UserSelectionTrap(dx[c])
+        else:
+            logging.info('reset buffer')
+            vstrbuff[0]=""
     vstrbuff[0]=vstrbuff[0]+c
     try:
         v = dx.get(vstrbuff[0],None) or dx[f"%{vstrbuff[0]}"]
@@ -442,10 +463,6 @@ def prompt_handler(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
             raise v[1]
         raise UserSelectionTrap(v[0])
     except KeyError:
-        if ord(c)==ord('\r'):
-            logging.info('[enter]: reset buffer')
-            vstrbuff[0]=""
-            return ''
         logging.info(f"User input [{vstrbuff[0]}] doesn't match anything")
         return vstrbuff[0]
 
@@ -453,8 +470,8 @@ def promptMatchingEntry(mx:IndexContent, ix:List[str]) ->Tuple[IndexContent,str]
     # Prompt user to select from set of matching entries.  Return
     # tuple of (mx, selected-entry)
     def get_selector():
-        c = 0
-        while c >= 0:
+        c = -1
+        while True:
             c += 1
             yield c
 
@@ -464,9 +481,9 @@ def promptMatchingEntry(mx:IndexContent, ix:List[str]) ->Tuple[IndexContent,str]
     dx['%\\'] = ('<Up Tree>',UserUpTrap)
     dx['%/'] = ('<Down Tree>', UserDownTrap)
     displayMatchingEntries(dx)
-    vstrbuff=[""]
+    vstrbuff=["0"]
     try:
-        prompt("foo:", 0,lambda c: prompt_handler(vstrbuff,dx,c))
+        prompt("foo:", 0,lambda c: prompt_editor(vstrbuff,dx,c))
     except UserSelectionTrap as s:
         logging.info(f"promptMatchingEntry() returns {'mx',s.args[0]}")
         return (mx, s.args[0])
