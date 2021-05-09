@@ -448,7 +448,7 @@ def prompt_editor(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
         return vstrbuff[0]
     elif ord(c) == 13: # Enter
         if vstrbuff[0] == '0':
-            raise UserSelectionTrap(dx['0'])
+            raise UserSelectionTrap(dx['0'][0])
         else:
             return vstrbuff[0]
     elif ord(c) == 27:  # Esc
@@ -457,7 +457,7 @@ def prompt_editor(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
         return vstrbuff[0]
     elif vstrbuff[0]=="0":
         if c=='0':
-            raise UserSelectionTrap(dx[c])
+            raise UserSelectionTrap(dx[c][0])
         else:
             logging.info('reset buffer')
             vstrbuff[0]=""
@@ -491,8 +491,8 @@ def promptMatchingEntry(mx:IndexContent, ix:List[str]) ->Tuple[IndexContent,str]
     try:
         prompt("foo:", 0,lambda c: prompt_editor(vstrbuff,dx,c))
     except UserSelectionTrap as s:
-        logging.info(f"promptMatchingEntry() returns {'mx',s.args[0][0]}")
-        return (mx, s.args[0][0])
+        logging.info(f"promptMatchingEntry() returns {'mx',s.args[0]}")
+        return (mx, s.args[0])
     except KeyboardInterrupt:
         logging.info("User Ctrl+C in promptMatchingEntry")
         return (mx, "!echo Ctrl+C")
