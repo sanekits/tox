@@ -626,8 +626,7 @@ if __name__ == "__main__":
         breakpoint()
     sys.setrecursionlimit(48)
     p = argparse.ArgumentParser(
-        """tox - quick directory-changer {python%d.%d}"""
-        % (sys.version_info[0], sys.version_info[1])
+        """to-foo - quick directory-changer v0.9.0 """
     )
     p.add_argument(
         "-x",
