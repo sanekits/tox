@@ -412,8 +412,14 @@ def printMatchingEntries(mx, ix):
     return (mx, "!" + "\n".join(px))
 
 def displayMatchingEntries(dx:OrderedDict):
+    menu_items=[]
     for i in dx:
-        sys.stderr.write(f"{i}: {dx[i][0]}\n")
+        if i[0] == '%':
+            menu_items.append(f"\033[;31m{i[1:]}\033[;0m:{dx[i][0]}")
+        else:
+            sys.stderr.write(f"\033[;31m{i}\033[;0m: {dx[i][0]}\n")
+    sys.stderr.write('   '.join(menu_items))
+    sys.stderr.write('\n')
 
 def prompt(msg:str,defValue:str,handler:Callable[[str],str]) -> str:
     # Ansi codes from https://tldp.org/HOWTO/Bash-Prompt-HOWTO/x361.html
