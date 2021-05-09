@@ -72,6 +72,17 @@ class UserSelectionTrap(UserTrap):
 
 indexFileBase:str = ".tox-index"
 
+home_path:str=os.environ.get('HOME',None)
+
+def abbreviate_path(path:str):
+    ''' If path starts with user's $HOME, substitute with tilde '''
+    if not home_path:
+        return path
+    if path.startswith(home_path):
+        return '~' + path[len(home_path):]
+    return path
+
+
 
 def pwd() -> str:
     """Return the $PWD value, which is nicer inside
@@ -417,7 +428,7 @@ def displayMatchingEntries(dx:OrderedDict):
         if i[0] == '%':
             menu_items.append(f"\033[;31m{i[1:]}\033[;0m:{dx[i][0]}")
         else:
-            sys.stderr.write(f"\033[;31m{i}\033[;0m: {dx[i][0]}\n")
+            sys.stderr.write(f"\033[;31m{i}\033[;0m: {abbreviate_path(dx[i][0])}\n")
     sys.stderr.write('   '.join(menu_items))
     sys.stderr.write('\n')
 
