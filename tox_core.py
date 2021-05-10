@@ -69,6 +69,19 @@ class UserDownTrap(UserTrap):
 class UserSelectionTrap(UserTrap):
     ...
 
+class CommandArgsError(BaseException):
+    ...
+
+class CommandArgs:
+    def __init__(self):
+        self.ix_operation:str=None # 'add_curdir','del_curdir','create_ix_here', 'cleanup', 'edit'
+        self.recurse:bool = False  # Recurse into subdirs to add all that match pattern
+        self.query:bool = False    # Print index info/location
+        self.printonly:bool = False # Print matching paths instead of changing dir
+
+        self.pattern:str = None  # Match against this regex
+        self.ix_offset:int = None # Which of the matches should be picked?
+        self.scope:str = None  # '//' for "all enclosing scopes"
 
 indexFileBase:str = ".tox-index"
 
@@ -631,13 +644,66 @@ def printGrep(pattern, ostream=None):
 
         return matchCnt > 0
 
+ParseDisp=namedtuple('ParseDisp',['arg','argiter','cmd_args'])
+
+def parseArgs(argv:List[str]) -> CommandArgs:
+    cmd_args=CommandArgs()
+
+    switches = {}
+    switches['--recurse'] = { 'help': 'Recursive mode (e.g. for -a add all dirs matching pattern)', 'parse': lambda v: (True) }
+    switches['-r'] = '--recurse' # alias
+
+    switches['--edit']= { 'help': "Launch editor for .tox-index file", 'parse': lambda v: True }
+    switches['-e'] = '--edit' # alias
+
+    switches['--ix-here']= { 'help': "Create index in current dir",'parse': lambda v: True}
+    switches['-x']= '--ix-here' # alias
+
+    switches['--add-dir']= {'help': 'Add dir to index [ default=current dir, -r recurses to add all matches]','parse': lambda v: True}
+    switches['-a']= '--add-dir' # alias
+
+    switches['--del-dir']= {'help': 'Delete dir from index','parse': lambda v: True}
+    switches['-d']: '--del-dir' # alias
+
+    switches['--cleanup']= {'help': 'Cleanup index, removing dead entries','parse': lambda v: True}
+    switches['-c']='--cleanup' # alias
+
+    switches['--help']= {'help': 'Show help','parse': lambda v: True}
+    switches['-h']='--help' # alias
+
+    switches['--query']= {'help': 'Print index information/location','parse': lambda v: True}
+    switches['q']='--query' # alias
+
+    switches['--printonly']= {'help': 'Print matches in plain mode','parse': lambda v: True}
+    switches['-p']='--printonly' # alias
+
+    itv = iter(argv[1:])
+    while True:
+        arg=next(itv)
+        if arg.startswith('-'):
+            sw = switches.get(arg,None)
+            if not sw:
+                raise CommandArgsError(f"Unknown switch: {arg}")
+            if type(sw) is str:  # Alias handling:
+                sw = switches.get(sw,None)
+                if not sw:
+                    raise CommandArgsError(f"Unknown switch: {arg}")
+            try:
+                sw['parse']( ParseDisp(arg, itv, cmd_args) )
+            except Exception as e:
+                raise CommandArgsError(f"Parse failure for {arg}: {str(e)}")
+
+
 
 if __name__ == "__main__":
     if int(os.environ.get('break_on_main',0)) > 0:
         breakpoint()
     sys.setrecursionlimit(48)
+
+    cmd_args=parseArgs(sys.argv)
+
     p = argparse.ArgumentParser(
-        """to-foo - quick directory-changer v0.9.1 """
+        """to-foo - quick directory-changer v0.9.2 """
     )
     p.add_argument(
         "-x",
@@ -731,7 +797,7 @@ if __name__ == "__main__":
             del vargs[-1]
     except:
         pass
-    empty = True  # Have we done anything meaningful?
+empty = True  # Have we done anything meaningful?
 
     ensureHomeIndex()
 
