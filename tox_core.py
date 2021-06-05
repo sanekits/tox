@@ -194,7 +194,7 @@ class IndexContent(list):
                 f.write("%s\n" % line)
         os.rename(self.path + ".tmp", self.path)
 
-    def matchPaths(self, patterns:List[str], fullDirname:str=False) ->List[str]:
+    def matchPaths(self, patterns:List[str], fullDirname:bool=False) ->List[str]:
         """ Returns matches of items in the index. """
 
         xs = IndexedSet()
@@ -223,7 +223,7 @@ class IndexContent(list):
             # We're a chain, so recurse:
             pp = self.outer.matchPaths(patterns, True)
             xs = xs.union(pp)
-        return list(xs)
+        return sorted(list(xs),key=lambda path: len(path))
 
 
 class AutoContent(list):
