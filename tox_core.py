@@ -344,13 +344,30 @@ class ResolveMode(object):
     calc = 3  # calculate the match list and return it
 
 
-def resolvePatternToDir(patterns:List[str], N:int, K:str, mode:ResolveMode=ResolveMode.userio) -> Tuple[List,str]:
+def resolvePatternToDir(patterns:List[str], mode:ResolveMode=ResolveMode.userio) -> Tuple[List,str]:
     """ Match patterns to index, choose Nth result or prompt user, return dirname to caller. If printonly, don't prompt, just return the list of matches."""
     # Multiple patterns are handled with recursion: the first is used to select first level, then an index is loaded there and the second pattern is selected
 
-    # If K == '//', means 'global': search inner and outer indices
-    #    K == '/', means 'skip local': search outer indices only
-
+    pattern_0=f'*{patterns[0]}*'
+    K=None
+    N=None
+    next_pattern=1
+    try:
+        # Scan for K (indicating / or // to select higher-level indexes) and N (number offset in matching set)
+        # If K == '//', means 'global': search inner and outer indices
+        #    K == '/', means 'skip local': search outer indices only
+        for opt in patterns[1:3]:
+            if opt in ['/','//']:
+                K=opt
+                next_pattern+=1
+                continue
+            try:
+                N=int(opt)
+                next_pattern+=1
+            except:
+                ...
+    except:
+        ...
 
     # ix is the directory index:
     ix:IndexContent = loadIndex(pwd(), K in ["//", "/"])
@@ -366,7 +383,6 @@ def resolvePatternToDir(patterns:List[str], N:int, K:str, mode:ResolveMode=Resol
     if ix.Empty():
         return (None, "!No matches for [%s]" % "+".join(patterns))
 
-    pattern_0=f'*{patterns[0]}*'
     # Do we have any glob chars in pattern?
     # hasGlob = len([v for v in p if v in ["*", "?"]])
     # if not hasGlob:
@@ -376,6 +392,15 @@ def resolvePatternToDir(patterns:List[str], N:int, K:str, mode:ResolveMode=Resol
     # else:
     #     k_patterns.append(p)
 
+    def recurse_or_return(matches:List[str],solution:str):
+        if not patterns[next_pattern:]:
+            if mode == ResolveMode.printonly:
+                return printMatchingEntries([rk], rk)
+            return (matches,solution)
+        os.chdir(solution)
+        os.environ['PWD']=solution
+        # If there's more patterns, we shall recurse:
+        return resolvePatternToDir(patterns[next_pattern:],  mode)
 
     mx = ix.matchPaths([pattern_0])
     if len(mx) == 0:
@@ -388,30 +413,17 @@ def resolvePatternToDir(patterns:List[str], N:int, K:str, mode:ResolveMode=Resol
             )
             N = len(mx) * (1 if N >= 0 else -1)
         rk = ix.absPath(mx[N])
-        if mode == ResolveMode.printonly:
-            return printMatchingEntries([rk], rk)
-        return ([rk], rk)
+        return recurse_or_return([rk],rk)
 
     if mode == ResolveMode.printonly:
         return printMatchingEntries(mx, ix)
-
     if len(mx) == 1:
         rk = ix.absPath(mx[0])
         return ([rk], rk)
-
     if mode == ResolveMode.calc:
         return [mx, None]
-
     r0 = promptMatchingEntry(mx, ix)
-    if len(patterns) == 1:
-        return r0
-    os.chdir(r0[1])
-    os.environ['PWD']=r0[1]
-    # If there's more patterns, we shall recurse:
-    return resolvePatternToDir(patterns[1:], None, None, mode)
-
-
-
+    return recurse_or_return( r0[0],r0[1] )
 
 
 def printMatchingEntries(mx, ix):
@@ -712,23 +724,7 @@ if __name__ == "__main__":
         sys.stdout = origStdout
 
 
-    N = None  # None or an integer indicating index-of-match
-    K = None  # Either None, '/' or //' to indicate scope operator
     patterns = vargs
-    try:
-        # Dir index is the last arg if its an integer
-        if len(vargs) > 1:
-            N = int(vargs[-1])
-            del vargs[-1]
-    except:
-        pass
-
-    try:
-        if vargs[-1] in ["/", "//"]:
-            K = vargs[-1]
-            del vargs[-1]
-    except:
-        pass
     empty = True  # Have we done anything meaningful?
 
     ensureHomeIndex()
@@ -773,7 +769,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     rmode = ResolveMode.printonly if args.printonly else ResolveMode.userio
-    res = resolvePatternToDir(patterns, N, K, rmode)
+    res = resolvePatternToDir(patterns, rmode)
     if res[1]:
         print(res[1])
 
