@@ -435,14 +435,18 @@ def resolvePatternToDir(patterns:List[str], mode:ResolveMode=ResolveMode.userio)
         return ([rk], rk)
     if mode == ResolveMode.calc:
         return [mx, None]
-    r0 = promptMatchingEntry(mx, ix)
+    try:
+        r0 = promptMatchingEntry(mx, ix)
+    except UserUpTrap:
+        raise UserUpTrap(dirname(ix.path))
+
     return recurse_or_return( r0[0],r0[1] )
 
 
 def printMatchingEntries(mx, ix):
     px = []
     for i in range(1, len(mx) + 1):
-        px.append(mx[i - 1])
+        px.append(mx[i - 1][0])
     return (mx, "!" + "\n".join(px))
 
 def displayMatchingEntries(dx:OrderedDict):
@@ -506,7 +510,7 @@ def prompt_editor(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
         logging.info(f"User input [{vstrbuff[0]}] doesn't match anything")
         return vstrbuff[0]
 
-def promptMatchingEntry(mx:IndexContent, ix:List[str]) ->Tuple[IndexContent,str]:
+def promptMatchingEntry(mx:List[Tuple[str,int]], ix:IndexContent ) ->Tuple[IndexContent,str]:
     # Prompt user to select from set of matching entries.  Return
     # tuple of (mx, selected-entry)
     def get_selector():
@@ -516,6 +520,7 @@ def promptMatchingEntry(mx:IndexContent, ix:List[str]) ->Tuple[IndexContent,str]
             yield c
 
     sel = iter(get_selector())
+    sys.stderr.write(f"  ::: Index: \033[;32m{dirname(ix.path)}\033[;0m\n")
     dx = OrderedDict( {str(next(sel)):(m[0],None) for m in mx} )
     dx['%q'] = ('<Quit>',KeyboardInterrupt)
     dx['%\\'] = ('<Up Tree>',UserUpTrap)
@@ -800,7 +805,30 @@ if __name__ == "__main__":
         sys.exit(1)
 
     rmode = ResolveMode.printonly if args.printonly else ResolveMode.userio
-    res = resolvePatternToDir(patterns, rmode)
+    res = (None,None)
+    dirstack=[pwd()]
+    while True:
+        try:
+            res = resolvePatternToDir(patterns, rmode)
+            break
+        except UserUpTrap as t:
+            xdir=dirname(t.args[0])
+            if dirstack[-1] == xdir:
+                break
+            sys.stderr.write(f" ::: Relocating to {xdir}\n")
+            dirstack.append(xdir)
+            os.chdir(xdir)
+            os.environ['PWD'] = xdir
+        except UserDownTrap as v:
+            if len(dirstack) < 2:
+                break
+            dirstack=dirstack[:-1]
+            xdir=dirstack[-1]
+            sys.stderr.write(f" ::: Relocating to {xdir}\n")
+            os.chdir(xdir)
+            os.environ['PWD'] = xdir
+
+
     if res[1]:
         print(res[1])
 
