@@ -1,26 +1,20 @@
-FROM alpine
+FROM artprod.dev.bloomberg.com/dpkg-python-development-base:3.7
 
-WORKDIR /root
-ENV SHELL /bin/bash
-ENV USER root
 
-RUN apk add \
+RUN apt-get install -y \
     bash \
     bash-completion \
     git \
-    python3
+    vim \
+    rsync \
+    tree
 
-RUN python3.8 -m pip install --upgrade pip && python3.8 -m pip install pudb
+RUN yum install -y openssh-clients
 
-WORKDIR /etc
-RUN /bin/sed -i 's^/bin/ash^/bin/bash^' passwd
+RUN python3.7 -m pip install --upgrade pip &&  \
+    python3.7 -m pip install \
+    pytest \
+    pudb \
+    debugpy
 
-WORKDIR /app
-COPY . .
-RUN mkdir -p /root/bin ; ln -s /app /root/bin/tox-py
 
-WORKDIR /root
-COPY docker_bashrc_root .bashrc
-RUN echo '. /root/.bashrc' >/root/.profile
-
-RUN bash -l -c 'pwd && echo $BASH_VERSION'
