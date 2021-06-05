@@ -3,7 +3,7 @@ import os
 import sys
 import tty
 import termios
-from typing import Callable, List, Dict, Tuple
+from typing import Callable, List, Dict, Sequence, Tuple
 from collections import OrderedDict
 
 import logging
@@ -19,7 +19,7 @@ logging.info(f"tox startup, args={sys.argv}, cwd={os.getcwd()}, __file__={__file
 
 sys.path.insert(0, tox_core_root)
 
-''' Debugging tips:
+''' Debuggingh tips:
     1.  Set tox_debugpy=1 to enable debugpy listening on 5690
     2.  Set break_on_main=1 to enable stop in __main__ block instead of here '''
 if int(os.environ.get('tox_debugpy',0)) > 0:
@@ -82,6 +82,8 @@ class CommandArgs:
         self.pattern:str = None  # Match against this regex
         self.ix_offset:int = None # Which of the matches should be picked?
         self.scope:str = None  # '//' for "all enclosing scopes"
+
+        self.keywords:List[str] = []  # The sequence of search words
 
 indexFileBase:str = ".tox-index"
 
@@ -644,7 +646,21 @@ def printGrep(pattern, ostream=None):
 
         return matchCnt > 0
 
-ParseDisp=namedtuple('ParseDisp',['arg','argiter','cmd_args'])
+class ParseDisp:
+    def __init__(self,arg:str,argiter:Sequence,cmd_args:CommandArgs):
+        self.arg=arg
+        self.argiter=argiter
+        self.cmd_args=cmd_args
+
+def parse_set_index_operation(ixop:str,parse_disp):
+    cmd_args=parse_disp.cmd_args
+    if not cmd_args.ix_operation:
+        cmd_args.ix_operation=ixop
+        return
+    raise RuntimeError(f"Can't do {ixop} because {cmd_args.ix_operation} already specified")
+
+def parse_add_dir(parse_disp:ParseDisp) -> None:
+    parse_set_index_operation('add_curdir',parse_disp)
 
 def parseArgs(argv:List[str]) -> CommandArgs:
     cmd_args=CommandArgs()
@@ -653,19 +669,34 @@ def parseArgs(argv:List[str]) -> CommandArgs:
     switches['--recurse'] = { 'help': 'Recursive mode (e.g. for -a add all dirs matching pattern)', 'parse': lambda v: (True) }
     switches['-r'] = '--recurse' # alias
 
-    switches['--edit']= { 'help': "Launch editor for .tox-index file", 'parse': lambda v: True }
+    switches['--edit']= {
+        'help': "Launch editor for .tox-index file",
+        'parse': lambda v: parse_set_index_operation('edit',v)
+    }
     switches['-e'] = '--edit' # alias
 
-    switches['--ix-here']= { 'help': "Create index in current dir",'parse': lambda v: True}
+    switches['--ix-here']= {
+        'help': "Create index in current dir",
+        'parse': lambda v: parse_set_index_operation('create_ix_here',v)
+    }
     switches['-x']= '--ix-here' # alias
 
-    switches['--add-dir']= {'help': 'Add dir to index [ default=current dir, -r recurses to add all matches]','parse': lambda v: True}
+    switches['--add-dir']= {
+        'help': 'Add dir to index [ default=current dir, -r recurses to add all matches]',
+        'parse': lambda v: parse_set_index_operation('add_curdir',v)
+    }
     switches['-a']= '--add-dir' # alias
 
-    switches['--del-dir']= {'help': 'Delete dir from index','parse': lambda v: True}
-    switches['-d']: '--del-dir' # alias
+    switches['--del-dir']= {
+        'help': 'Delete dir from index',
+        'parse': lambda v: parse_set_index_operation('del_curdir',v)
+        }
+    switches['-d']= '--del-dir' # alias
 
-    switches['--cleanup']= {'help': 'Cleanup index, removing dead entries','parse': lambda v: True}
+    switches['--cleanup']= {
+        'help': 'Cleanup index, removing dead entries',
+        'parse': lambda v: parse_set_index_operation('cleanup',v)
+        }
     switches['-c']='--cleanup' # alias
 
     switches['--help']= {'help': 'Show help','parse': lambda v: True}
@@ -678,8 +709,7 @@ def parseArgs(argv:List[str]) -> CommandArgs:
     switches['-p']='--printonly' # alias
 
     itv = iter(argv[1:])
-    while True:
-        arg=next(itv)
+    for arg in itv:
         if arg.startswith('-'):
             sw = switches.get(arg,None)
             if not sw:
@@ -692,97 +722,101 @@ def parseArgs(argv:List[str]) -> CommandArgs:
                 sw['parse']( ParseDisp(arg, itv, cmd_args) )
             except Exception as e:
                 raise CommandArgsError(f"Parse failure for {arg}: {str(e)}")
+        else:
+            cmd_args.keywords.append(arg)
+    return cmd_args
+
 
 
 
 if __name__ == "__main__":
-    if int(os.environ.get('break_on_main',0)) > 0:
-        breakpoint()
-    sys.setrecursionlimit(48)
 
-    cmd_args=parseArgs(sys.argv)
-
-    p = argparse.ArgumentParser(
-        """to-foo - quick directory-changer v0.9.2 """
-    )
-    p.add_argument(
-        "-x",
-        "--ix-here",
-        action="store_true",
-        dest="create_ix_here",
-        help="Create index in current dir",
-    )
-    p.add_argument(
-        "-r",
-        "--recurse",
-        action="store_true",
-        dest="recurse",
-        help="Recursive mode (e.g. for -a add all dirs in subtree)",
-        default=False,
-    )
-    p.add_argument(
-        "-a",
-        "--add-dir",
-        action="store_true",
-        dest="add_to_index",
-        help="Add dir to index [default=current dir, -r recurses to add all]",
-    )
-    p.add_argument(
-        "-d",
-        "--del-dir",
-        action="store_true",
-        dest="del_from_index",
-        help="Delete current dir from index",
-    )
-    p.add_argument(
-        "-c", "--cleanup", action="store_true", dest="cleanindex", help="Cleanup index"
-    )
-    p.add_argument(
-        "-q",
-        "--query",
-        action="store_true",
-        dest="indexinfo",
-        help="Print index information/location",
-    )
-    p.add_argument(
-        "-e", "--edit", action="store_true", dest="editindex", help="Edit the index"
-    )
-    p.add_argument(
-        "-p",
-        "--printonly",
-        action="store_true",
-        dest="printonly",
-        help="Print matches in plain mode",
-    )
-    p.add_argument(
-        "--auto",
-        "--autoedit",
-        action="store_true",
-        dest="autoedit",
-        help="Edit the local .tox-auto, create first if missing",
-    )
-    p.add_argument(
-        "-g",
-        "--grep",
-        action="store_true",
-        dest="do_grep",
-        help="Match dirnames and .tox-auto search properties against a regular expression",
-    )
+    # TODO: replace this old arg parser with parseArgs()
+    # p = argparse.ArgumentParser(
+    #     """to-foo - quick directory-changer v0.9.2 """
+    # )
+    # p.add_argument(
+    #     "-x",
+    #     "--ix-here",
+    #     action="store_true",
+    #     dest="create_ix_here",
+    #     help="Create index in current dir",
+    # )
+    # p.add_argument(
+    #     "-r",
+    #     "--recurse",
+    #     action="store_true",
+    #     dest="recurse",
+    #     help="Recursive mode (e.g. for -a add all dirs in subtree)",
+    #     default=False,
+    # )
+    # p.add_argument(
+    #     "-a",
+    #     "--add-dir",
+    #     action="store_true",
+    #     dest="add_to_index",
+    #     help="Add dir to index [default=current dir, -r recurses to add all]",
+    # )
+    # p.add_argument(
+    #     "-d",
+    #     "--del-dir",
+    #     action="store_true",
+    #     dest="del_from_index",
+    #     help="Delete current dir from index",
+    # )
+    # p.add_argument(
+    #     "-c", "--cleanup", action="store_true", dest="cleanindex", help="Cleanup index"
+    # )
+    # p.add_argument(
+    #     "-q",
+    #     "--query",
+    #     action="store_true",
+    #     dest="indexinfo",
+    #     help="Print index information/location",
+    # )
+    # p.add_argument(
+    #     "-e", "--edit", action="store_true", dest="editindex", help="Edit the index"
+    # )
+    # p.add_argument(
+    #     "-p",
+    #     "--printonly",
+    #     action="store_true",
+    #     dest="printonly",
+    #     help="Print matches in plain mode",
+    # )
+    # p.add_argument(
+    #     "--auto",
+    #     "--autoedit",
+    #     action="store_true",
+    #     dest="autoedit",
+    #     help="Edit the local .tox-auto, create first if missing",
+    # )
+    # p.add_argument(
+    #     "-g",
+    #     "--grep",
+    #     action="store_true",
+    #     dest="do_grep",
+    #     help="Match dirnames and .tox-auto search properties against a regular expression",
+    # )
     # p.add_argument("patterns", nargs='?', help="Pattern(s) to match. If final arg is integer, it is treated as list index. ")
     # p.add_argument(
     # "N", nargs='?', help="Select N'th matching directory, or use '/' or '//' to expand search scope.")
-    origStdout = sys.stdout
 
-    try:
-        sys.stdout = sys.stderr
-        args, vargs = p.parse_known_args()
-    finally:
-        sys.stdout = origStdout
+    if int(os.environ.get('break_on_main',0)) > 0:
+        breakpoint()
+    sys.setrecursionlimit(100)
 
+    cmd_args=parseArgs(sys.argv)
+
+    rmode = ResolveMode.printonly if cmd_args.printonly else ResolveMode.userio
+
+
+
+def legacy_main(cmd_args:CommandArgs):
 
     N = None  # None or an integer indicating index-of-match
     K = None  # Either None, '/' or //' to indicate scope operator
-    patterns = vargs
+    vargs = cmd_args.keywords
     try:
         # Dir index is the last arg if its an integer
         if len(vargs) > 1:
@@ -797,39 +831,39 @@ if __name__ == "__main__":
             del vargs[-1]
     except:
         pass
-empty = True  # Have we done anything meaningful?
+    empty = True  # Have we done anything meaningful?
 
     ensureHomeIndex()
 
-    if args.do_grep:
+    if cmd_args.do_grep:
         vv = printGrep(patterns[0] if len(patterns) else None)
         sys.exit(0 if vv else 1)
 
-    if args.autoedit:
+    if cmd_args.autoedit:
         editToxAutoHere("/".join([tox_core_root, "tox-auto-default-template"]))
         sys.exit(0)
 
-    if args.create_ix_here:
+    if cmd_args.create_ix_here:
         createIndexHere()
         empty = False
 
-    if args.add_to_index:
-        addDirToIndex(patterns[0] if len(patterns) else None, args.recurse)
+    if cmd_args.add_to_index:
+        addDirToIndex(patterns[0] if len(patterns) else None, cmd_args.recurse)
         sys.exit(0)
 
-    elif args.del_from_index:
+    elif cmd_args.del_from_index:
         delCwdFromIndex()
         empty = False
 
-    if args.indexinfo:
+    if cmd_args.indexinfo:
         printIndexInfo(findIndex())
         empty = False
 
-    if args.editindex:
+    if cmd_args.editindex:
         editIndex()
         sys.exit(0)
 
-    if args.cleanindex:
+    if cmd_args.cleanindex:
         cleanIndex()
         empty = False
 

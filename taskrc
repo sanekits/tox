@@ -26,8 +26,10 @@ yellow() {
 }
 
 
+
 function docker_build {
     #Help build the Docker image for tox-dev
+    [[ -f /.dockerenv ]] && {red "Don't run this in container"; false; return; }
     cd $taskrc_dir
     docker-compose build --pull || return
     echo "Build complete, run 'container_prepare' to setup for dev ops"
@@ -35,6 +37,7 @@ function docker_build {
 
 function container_prepare {
     #Help after docker_build(), use container_prepare() to setup for dev ops
+    [[ -f /.dockerenv ]] && {red "Don't run this in container"; false; return; }
     (
         cd $taskrc_dir || die 1
         [[ -f /.dockerenv ]] && die "This should not run in a container"
@@ -52,7 +55,7 @@ function container_prepare {
             mkdir -p .vimtmp
         ) || die
         echo "home.${USER}" > current_user_home
-        docker-compose exec tox-testenv /app/container_prepare_inner.sh || die 3
+        docker-compose exec tox-testenv bash /app/container_prepare_inner.sh || die 3
 
 
         green "container_prepare(): Ok\n"
@@ -62,6 +65,7 @@ function container_prepare {
 
 function inner_shell() {
     #Help inner_shell() - run a shell as $USER in tox-testenv container, or --root to run as root
+    [[ -f /.dockerenv ]] && {red "Don't run this in container"; false; return; }
     local username="$USER"
     [[ $1 == --root ]] && { username=root; shift; }
     (
