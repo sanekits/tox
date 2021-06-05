@@ -645,7 +645,7 @@ def printGrep(pattern, ostream=None):
 if __name__ == "__main__":
     if int(os.environ.get('break_on_main',0)) > 0:
         breakpoint()
-    sys.setrecursionlimit(48)
+    sys.setrecursionlimit(98)
     p = argparse.ArgumentParser(
         """to-foo - quick directory-changer v0.9.1 """
     )
