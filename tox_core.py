@@ -69,6 +69,8 @@ class UserDownTrap(UserTrap):
 class UserSelectionTrap(UserTrap):
     ...
 
+class AddEntryAlreadyPresent(BaseException):
+    ...
 
 indexFileBase:str = ".tox-index"
 
@@ -111,20 +113,22 @@ def trace(msg: str) -> None:
 
 
 class IndexContent(list):
+    ''' Each index entry is a [path,priority] tuple.  Higher priority numbers cause
+    an entry to move to the top of the match list.  Default priority is 1.  Absent
+    priority, entries or ordered by ascending length alone. '''
     def __init__(self, path: str):
         self.path: str = path
         self.protect: bool = False
         self.outer = None  # If we are chaining indices
 
         with open(self.path, "r") as f:
-            all = f.read().split("\n")
-            all = [l for l in all if len(l) > 0]
-            if len(all):
-                if all[0].startswith("#protect"):
-                    self.protect = True
-                    self.extend(all[1:])
-                else:
-                    self.extend(all)
+            for line in f.readlines():
+                path,_,priority=line.rstrip().partition(' ')
+                try:
+                    pri=int(priority)
+                except:
+                    pri=1
+                self.append((path,pri))
 
     def Empty(self) -> bool:
         """ Return true if index chain has no entries at all """
@@ -155,20 +159,30 @@ class IndexContent(list):
             pass
         return dir
 
-    def addDir(self, xdir: str) -> bool:
+    def addDir(self, xdir: str, priority: int) -> bool:
         dir = self.relativePath(xdir)
         if dir in self:
             return False  # no change
-        n = bisect.bisect(self, dir)
-        self.insert(n, dir)
+        entry=(dir,priority)
+        n = bisect.bisect([p[0] for p in self], dir)
+        try:
+            if self[n-1][0]==dir:
+                if self[n-1][1] == priority:
+                    raise AddEntryAlreadyPresent()
+                self[n-1]=entry  # Update existing entry
+                return True
+        except IndexError:
+            ...
+        self.insert(n, entry)
         return True
 
     def delDir(self, xdir: str) -> bool:
         dir = self.relativePath(xdir)
-        if not dir in self:
-            return False  # no change
-        self.remove(dir)
-        return True
+        for e in self:
+            if e[0]==dir:
+                self.remove(e)
+                return True
+        return False
 
     def clean(self) -> None:
         # Remove dead paths from index
@@ -188,21 +202,19 @@ class IndexContent(list):
     def write(self) ->None:
         # Write the index back to file
         with open(self.path + ".tmp", "w") as f:
-            if self.protect:
-                f.write("#protect\n")
-            for line in sorted(self):
-                f.write("%s\n" % line)
+            for entry in sorted(self):
+                f.write("%s %d\n" % entry)
         os.rename(self.path + ".tmp", self.path)
 
     def matchPaths(self, patterns:List[str], fullDirname:bool=False) ->List[str]:
         """ Returns matches of items in the index. """
 
-        xs = IndexedSet()
         # Identify all the potential matches, filter by all patterns:
-        cand_paths = self[:]
+        cand_entries = self[:]
         for pattern in patterns:
-            qual_paths = []
-            for path in cand_paths:
+            qual_entries = []
+            for entry in cand_entries:
+                path=entry[0]
                 for frag in path.split("/"):
                     if fnmatch.fnmatch(frag, pattern):
                         # If fullDirname is set, we'll render an absolute path.
@@ -211,19 +223,20 @@ class IndexContent(list):
                         # outer index path happens to match a local relative path
                         # which isn't indexed.
                         if fullDirname or not isdir(path):
-                            qual_paths.append(self.absPath(path))
+                            qual_entries.append((self.absPath(path),entry[1]))
                         else:
-                            qual_paths.append(path)
-            cand_paths = qual_paths
+                            qual_entries.append((path,entry[1]))
+            cand_entries = qual_entries
 
         # Remove dupes:
-        for path in cand_paths:
-            xs.add(path)
+        xs = IndexedSet()
+        for entry in cand_entries:
+            xs.add(entry)
         if self.outer is not None:
             # We're a chain, so recurse:
             pp = self.outer.matchPaths(patterns, True)
             xs = xs.union(pp)
-        return sorted(list(xs),key=lambda path: len(path))
+        return sorted(list(xs),key=lambda entry: len(entry[0])/entry[1])
 
 
 class AutoContent(list):
@@ -412,13 +425,13 @@ def resolvePatternToDir(patterns:List[str], mode:ResolveMode=ResolveMode.userio)
                 % (N, "+".join(patterns), len(mx)-1)
             )
             N = len(mx) * (1 if N >= 0 else -1)
-        rk = ix.absPath(mx[N])
+        rk = ix.absPath(mx[N][0])
         return recurse_or_return([rk],rk)
 
     if mode == ResolveMode.printonly:
         return printMatchingEntries(mx, ix)
     if len(mx) == 1:
-        rk = ix.absPath(mx[0])
+        rk = ix.absPath(mx[0][0])
         return ([rk], rk)
     if mode == ResolveMode.calc:
         return [mx, None]
@@ -503,7 +516,7 @@ def promptMatchingEntry(mx:IndexContent, ix:List[str]) ->Tuple[IndexContent,str]
             yield c
 
     sel = iter(get_selector())
-    dx = OrderedDict( {str(next(sel)):(m,None) for m in mx} )
+    dx = OrderedDict( {str(next(sel)):(m[0],None) for m in mx} )
     dx['%q'] = ('<Quit>',KeyboardInterrupt)
     dx['%\\'] = ('<Up Tree>',UserUpTrap)
     dx['%/'] = ('<Down Tree>', UserDownTrap)
@@ -520,25 +533,43 @@ def promptMatchingEntry(mx:IndexContent, ix:List[str]) ->Tuple[IndexContent,str]
 
 
 
-def addDirToIndex(xdir, recurse):
-    """ Add dir to active index """
-    cwd = xdir if xdir else pwd()
-    ix = loadIndex()  # Always load active index for this, even if
-    # the dir we're adding is out of tree
+def addDirsToIndex(xargs:List[str], recurse:bool):
+    # xargs is like '1 dir 1 dir2' , etc.
+    priority=1
+    try:
+        if int(xargs[0]) and len(xargs)==1:
+            xargs.append(pwd())
+    except:
+        if not xargs:
+            xargs=[pwd(),priority]
 
-    def xAdd(path):
-        if ix.addDir(path):
-            ix.write()
-            sys.stderr.write("%s added to %s\n" % (path, ix.path))
-        else:
-            sys.stderr.write("%s is already in the index\n" % path)
+    iargs=iter(xargs)
+    for arg in iargs:
+        try:
+            priority=int(arg)
+            continue
+        except StopIteration:
+            xdir=pwd()
+        except:
+            xdir=arg
+        ix = loadIndex()  # Always load active index for this, even if
+                          # the dir we're adding is out of tree
 
-    xAdd(cwd)
-    if recurse:
-        for r, dirs, _ in os.walk(cwd):
-            dirs[:] = [d for d in dirs if not d[0] == "."]  # ignore hidden dirs
-            for d in dirs:
-                xAdd(r + "/" + d)
+        def xAdd(path:str,priority:int):
+            try:
+                if ix.addDir(path,priority):
+                    ix.write()
+                    sys.stderr.write("%s added/updated to %s:%d\n" % (path, ix.path,priority))
+                    return
+            except AddEntryAlreadyPresent:
+                sys.stderr.write("%s is already in the index\n" % path)
+
+        xAdd(xdir,priority)
+        if recurse:
+            for r, dirs, _ in os.walk(xdir):
+                dirs[:] = [d for d in dirs if not d[0] == "."]  # ignore hidden dirs
+                for d in dirs:
+                    xAdd(r + "/" + d,priority)
 
 
 def delCwdFromIndex():
@@ -742,7 +773,7 @@ if __name__ == "__main__":
         empty = False
 
     if args.add_to_index:
-        addDirToIndex(patterns[0] if len(patterns) else None, args.recurse)
+        addDirsToIndex(patterns, args.recurse)
         sys.exit(0)
 
     elif args.del_from_index:
