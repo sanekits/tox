@@ -344,14 +344,13 @@ class ResolveMode(object):
     calc = 3  # calculate the match list and return it
 
 
-def resolvePatternToDir(patterns:List[str], N:str, K:str, mode:ResolveMode=ResolveMode.userio) -> Tuple[List,str]:
+def resolvePatternToDir(patterns:List[str], N:int, K:str, mode:ResolveMode=ResolveMode.userio) -> Tuple[List,str]:
     """ Match patterns to index, choose Nth result or prompt user, return dirname to caller. If printonly, don't prompt, just return the list of matches."""
-    # patterns are 'and-ed' together: a dir must match all patterns to be included
-    # in the search set.
+    # Multiple patterns are handled with recursion: the first is used to select first level, then an index is loaded there and the second pattern is selected
+
     # If K == '//', means 'global': search inner and outer indices
     #    K == '/', means 'skip local': search outer indices only
 
-    pattern_0 = patterns[0] if len(patterns) == 1 else ""  # Todo: use all patterns
 
     # ix is the directory index:
     ix:IndexContent = loadIndex(pwd(), K in ["//", "/"])
@@ -367,38 +366,28 @@ def resolvePatternToDir(patterns:List[str], N:str, K:str, mode:ResolveMode=Resol
     if ix.Empty():
         return (None, "!No matches for [%s]" % "+".join(patterns))
 
-    # If pattern_0 has slash and literally matches something in the index,
-    # then we accept it as the One True Match:
-    if "/" in pattern_0 and pattern_0 in ix:
-        rk = ix.absPath(pattern_0)
-        return ([rk], rk)
+    pattern_0=f'*{patterns[0]}*'
+    # Do we have any glob chars in pattern?
+    # hasGlob = len([v for v in p if v in ["*", "?"]])
+    # if not hasGlob:
+    #     # no, make it a wildcard: our default behavior is 'match any part
+    #     # of path'
+    #     k_pattern="*" + p + "*"
+    # else:
+    #     k_patterns.append(p)
 
-    k_patterns = []
-    for p in patterns:
-        # Do we have any glob chars in pattern?
-        hasGlob = len([v for v in p if v in ["*", "?"]])
-        if not hasGlob:
-            # no, make it a wildcard: our default behavior is 'match any part
-            # of path'
-            k_patterns.append("*" + p + "*")
-        else:
-            k_patterns.append(p)
 
-    mx = ix.matchPaths(k_patterns)
+    mx = ix.matchPaths([pattern_0])
     if len(mx) == 0:
         return (None, "!No matches for pattern [%s]" % "+".join(patterns))
-    if N:
-        N = int(N)
-        if abs(N) > len(mx):
+    if type(N) is int:
+        if abs(N) >= len(mx):
             sys.stderr.write(
                 "Warning: Offset %d exceeds number of matches for pattern [%s]. Selecting index %d instead.\n"
-                % (N, "+".join(patterns), len(mx))
+                % (N, "+".join(patterns), len(mx)-1)
             )
             N = len(mx) * (1 if N >= 0 else -1)
-        if N >= 1:
-            rk = ix.absPath(mx[N - 1])
-        else:
-            rk = ix.absPath(mx[N])
+        rk = ix.absPath(mx[N])
         if mode == ResolveMode.printonly:
             return printMatchingEntries([rk], rk)
         return ([rk], rk)
@@ -413,7 +402,16 @@ def resolvePatternToDir(patterns:List[str], N:str, K:str, mode:ResolveMode=Resol
     if mode == ResolveMode.calc:
         return [mx, None]
 
-    return promptMatchingEntry(mx, ix)
+    r0 = promptMatchingEntry(mx, ix)
+    if len(patterns) == 1:
+        return r0
+    os.chdir(r0[1])
+    os.environ['PWD']=r0[1]
+    # If there's more patterns, we shall recurse:
+    return resolvePatternToDir(patterns[1:], None, None, mode)
+
+
+
 
 
 def printMatchingEntries(mx, ix):
