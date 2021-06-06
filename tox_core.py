@@ -24,7 +24,7 @@ sys.path.insert(0, tox_core_root)
     2.  Set break_on_main=1 to enable stop in __main__ block instead of here '''
 if int(os.environ.get('tox_debugpy',0)) > 0:
     import debugpy
-    dbgport=5690
+    dbgport=int(os.environ.get('tox_debug_port','5690'))
     debugpy.listen(('0.0.0.0',dbgport))
     sys.stderr.write(f"Waiting for python debugpy client on port {dbgport}\n")
     debugpy.wait_for_client()
@@ -130,6 +130,8 @@ class IndexContent(list):
         with open(self.path, "r") as f:
             for line in f.readlines():
                 path,_,priority=line.rstrip().partition(' ')
+                if not path or path[0]=='#':
+                    continue
                 try:
                     pri=int(priority)
                 except:

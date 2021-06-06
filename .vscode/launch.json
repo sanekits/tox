@@ -14,12 +14,27 @@
             },
         },
         {
-            "name": "Python: Container Attach",
+            "name": "Container Attach 5690",
             "type": "python",
             "request": "attach",
             "connect": {
                 "host": "localhost",
                 "port": 5690
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "."
+                }
+            ]
+        },
+        {
+            "name": "Container Attach 5580",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5580
             },
             "pathMappings": [
                 {
