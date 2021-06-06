@@ -76,19 +76,19 @@ indexFileBase:str = ".tox-index"
 
 home_path:str=os.environ.get('HOME',None)
 
-def abbreviate_path(path:str):
-    ''' If path starts with user's $HOME, substitute with tilde '''
-    def home_relative(path:str):
-        return '~' + path[len(home_path):]
-    if not home_path:
-        return path
-    if path.startswith(home_path):
-        return home_relative(path)
-    if not path[0] == '/':
+def abbreviate_path(dest_path:str,ix_path:str):
+    ''' Render shortest-meaningful representation of dest_path '''
+    def home_relative(dest_path:str):
+        return '~' + dest_path[len(home_path):]
+    if dest_path.startswith(home_path):
+        return home_relative(dest_path)
+    if dest_path.startswith(ix_path):
+        return dest_path[len(ix_path)+1:]
+    if not dest_path[0] == '/':
         if pwd()==home_path:
-            return '~/'+path
-        return './'+path
-    return path
+            return '~/'+dest_path
+        return './'+dest_path
+    return dest_path
 
 
 
@@ -470,14 +470,14 @@ def purp(txt:str) -> str:
     return f"\033[38;5;13m{txt}\033[;0m"
 
 
-def displayMatchingEntries(dx:OrderedDict):
+def displayMatchingEntries(dx:OrderedDict,ix_path:str) -> None:
     menu_items=[]
     for i in dx:
         if i[0] == '%':
             menu_items.append(f"{red(i[1:])}{dx[i][0]}")
         else:
             #sys.stderr.write(f"{red(i)}: {abbreviate_path(dx[i][0])} {red(i)}\n")
-            sys.stderr.write(f"{grey(abbreviate_path(dx[i][0]))} {red(i)}\n")
+            sys.stderr.write(f"{grey(abbreviate_path(dx[i][0],ix_path))} {red(i)}\n")
     sys.stderr.write('   '.join(menu_items))
     sys.stderr.write('\n')
 
@@ -547,7 +547,7 @@ def promptMatchingEntry(mx:List[Tuple[str,int]], ix:IndexContent ) ->Tuple[Index
     dx['%q'] = ('<Quit>',KeyboardInterrupt)
     dx['%\\'] = ('<Up Tree>',UserUpTrap)
     dx['%/'] = ('<Down Tree>', UserDownTrap)
-    displayMatchingEntries(dx)
+    displayMatchingEntries(dx,dirname(ix.path))
     vstrbuff=["0"]
     try:
         prompt("foo:", 0,lambda c: prompt_editor(vstrbuff,dx,c))
