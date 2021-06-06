@@ -410,6 +410,7 @@ def resolvePatternToDir(patterns:List[str], mode:ResolveMode=ResolveMode.userio)
             if mode == ResolveMode.printonly:
                 return printMatchingEntries([rk], rk)
             return (matches,solution)
+        solution=realpath(solution)
         os.chdir(solution)
         os.environ['PWD']=solution
         # If there's more patterns, we shall recurse:

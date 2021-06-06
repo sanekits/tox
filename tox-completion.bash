@@ -42,7 +42,8 @@ if [[ -f ${TOXHOME}/tox_core.py ]]; then
         if [[ ! -z $newDir ]]; then
             if [[ "${newDir:0:1}" != "!" ]]; then
                 # We're supposed to change to the dir identified:
-                tox_cd_enter "$newDir"
+                history -s "cd $newDir # tox $@"
+                tox_cd_enter "$newDir" "$@"
             else
                 if [[ "${newDir:0:2}" == "!!" ]]; then
                     # A double !! means "run this"
