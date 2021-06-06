@@ -186,16 +186,17 @@ class IndexContent(list):
 
     def clean(self) -> None:
         # Remove dead paths from index
-        okPaths = set()
-        for path in self:
+        okEntries = set()
+        for entry in self:
+            path=entry[0]
             full = self.absPath(path)
             if not isdir(full):
                 sys.stderr.write("Stale dir removed: %s\n" % full)
             else:
-                okPaths.add(path)
+                okEntries.add(entry)
 
         del self[:]
-        self.extend(okPaths)
+        self.extend(okEntries)
         self.write()
         sys.stderr.write("Cleaned index %s, %s dirs remain\n" % (self.path, len(self)))
 
