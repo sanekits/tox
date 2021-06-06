@@ -496,8 +496,23 @@ def prompt(msg:str,defValue:str,handler:Callable[[str],str]) -> str:
     finally:
         sys.stderr.write('\n')
 
+
+def multiple_numeric_candidates(buff:str, dx:OrderedDict):
+    # prompt_editor calls this to find out if a numeric entry matches
+    # more than one dx candidate -- which means we have to wait for more
+    # digits
+    seq=( k for k in dx if k.startswith(buff))
+    next(seq)
+    try:
+        next(seq)
+    except StopIteration:
+        return False
+    return True
+
 def prompt_editor(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
-    # this is called from prompt() for each char read from kbd
+    # this is called from prompt() for each char read from kbd.  If we
+    # return a buffer, that becomes the new edit contents.  If we
+    # throw a trap, that bubbles up to the editor's caller.
     logging.info(f"prompt_editor({ord(c)}:{c})")
     if ord(c) == 3: # Ctrl+C
         raise KeyboardInterrupt
@@ -524,6 +539,8 @@ def prompt_editor(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
     try:
         try:
             ofs=int(vstrbuff[0])
+            if multiple_numeric_candidates(vstrbuff[0],dx):
+                return vstrbuff[0]
             dx[vstrbuff[0]]
             raise UserSelectionTrap(ofs)
         except KeyError:

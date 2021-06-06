@@ -63,7 +63,7 @@ if [[ -f ${TOXHOME}/tox_core.py ]]; then
     alias tog='set -f; tox_w -g'
     alias tor='set -f; tox_w --report td'
     alias tox='set -f;tox_w'
-    alias toz='set -f;tox_debugpy=1 tox_w'
+    alias toz='koo() { tox_debugpy=1 tox_w "$@"; }; set -f; koo '
     # function toz {
     #     set -f
     #     tox_debugpy=1 $ToxPython $TOXHOME/tox_core.py  "$@"  # Debugger invocation
