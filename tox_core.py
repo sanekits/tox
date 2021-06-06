@@ -449,13 +449,27 @@ def printMatchingEntries(mx, ix):
         px.append(mx[i - 1][0])
     return (mx, "!" + "\n".join(px))
 
+# Colortable: https://www.lihaoyi.com/post/Ansi/Rainbow256.png
+def red(txt:str) -> str:
+    return f"\033[1;31m{txt}\033[;0m"
+def green(txt:str) -> str:
+    return f"\033[38;5;37m{txt}\033[;0m"
+def yellow(txt:str) -> str:
+    return f"\033[;33m{txt}\033[;0m"
+def grey(txt:str) -> str:
+    return f"\033[38;5;8m{txt}\033[;0m"
+def purp(txt:str) -> str:
+    return f"\033[38;5;13m{txt}\033[;0m"
+
+
 def displayMatchingEntries(dx:OrderedDict):
     menu_items=[]
     for i in dx:
         if i[0] == '%':
-            menu_items.append(f"\033[;31m{i[1:]}\033[;0m:{dx[i][0]}")
+            menu_items.append(f"{red(i[1:])}{dx[i][0]}")
         else:
-            sys.stderr.write(f"\033[;31m{i}\033[;0m: {abbreviate_path(dx[i][0])}\n")
+            #sys.stderr.write(f"{red(i)}: {abbreviate_path(dx[i][0])} {red(i)}\n")
+            sys.stderr.write(f"{grey(abbreviate_path(dx[i][0]))} {red(i)}\n")
     sys.stderr.write('   '.join(menu_items))
     sys.stderr.write('\n')
 
