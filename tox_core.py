@@ -432,7 +432,7 @@ def resolvePatternToDir(patterns:List[str], mode:ResolveMode=ResolveMode.userio)
                 "Warning: Offset %d exceeds number of matches for pattern [%s]. Selecting index %d instead.\n"
                 % (N, "+".join(patterns), len(mx)-1)
             )
-            N = len(mx) * (1 if N >= 0 else -1)
+            N = (len(mx)-1) * (1 if N >= 0 else -1)
         rk = ix.absPath(mx[N][0])
         return recurse_or_return([rk],rk)
 
