@@ -78,10 +78,16 @@ home_path:str=os.environ.get('HOME',None)
 
 def abbreviate_path(path:str):
     ''' If path starts with user's $HOME, substitute with tilde '''
+    def home_relative(path:str):
+        return '~' + path[len(home_path):]
     if not home_path:
         return path
     if path.startswith(home_path):
-        return '~' + path[len(home_path):]
+        return home_relative(path)
+    if not path[0] == '/':
+        if pwd()==home_path:
+            return '~/'+path
+        return './'+path
     return path
 
 
@@ -666,7 +672,8 @@ def printGrep(pattern, ostream=None):
         ostream = sys.stdout
     ix = loadIndex()
     sys.stdout.write("!")
-    for dir in ix:
+    for entry in ix:
+        dir=entry[0]
         dir = ix.absPath(dir)
         ostream.write(dir)
         has, autoPath = hasToxAuto(dir)
@@ -721,7 +728,7 @@ if __name__ == "__main__":
         "--add-dir",
         action="store_true",
         dest="add_to_index",
-        help="Add dir to index [default=current dir, -r recurses to add all]",
+        help="Add to index: <priority> <path> (-r to recurse all)",
     )
     p.add_argument(
         "-d",
@@ -750,13 +757,13 @@ if __name__ == "__main__":
         dest="printonly",
         help="Print matches in plain mode",
     )
-    p.add_argument(
-        "--auto",
-        "--autoedit",
-        action="store_true",
-        dest="autoedit",
-        help="Edit the local .tox-auto, create first if missing",
-    )
+    # p.add_argument(
+    #     "--auto",
+    #     "--autoedit",
+    #     action="store_true",
+    #     dest="autoedit",
+    #     help="Edit the local .tox-auto, create first if missing",
+    # )
     p.add_argument(
         "-g",
         "--grep",
@@ -785,9 +792,9 @@ if __name__ == "__main__":
         vv = printGrep(patterns[0] if len(patterns) else None)
         sys.exit(0 if vv else 1)
 
-    if args.autoedit:
-        editToxAutoHere("/".join([tox_core_root, "tox-auto-default-template"]))
-        sys.exit(0)
+    # if args.autoedit:
+    #     editToxAutoHere("/".join([tox_core_root, "tox-auto-default-template"]))
+    #     sys.exit(0)
 
     if args.create_ix_here:
         createIndexHere()
