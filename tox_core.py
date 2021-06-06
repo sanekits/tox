@@ -524,7 +524,11 @@ def prompt_editor(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
     try:
         try:
             ofs=int(vstrbuff[0])
+            dx[vstrbuff[0]]
             raise UserSelectionTrap(ofs)
+        except KeyError:
+            vstrbuff[0]=""
+            return vstrbuff[0]
         except ValueError:
             ofs=None
         v = dx.get(vstrbuff[0],None) or dx[f"%{vstrbuff[0]}"]
@@ -557,7 +561,7 @@ def promptMatchingEntry(mx:List[Tuple[str,int]], ix:IndexContent ) ->Tuple[Index
     displayMatchingEntries(dx,dirname(ix.path))
     vstrbuff=["0"]
     try:
-        prompt("Choose:", 0,lambda c: prompt_editor(vstrbuff,dx,c))
+        prompt("Choose", 0,lambda c: prompt_editor(vstrbuff,dx,c))
     except UserSelectionTrap as s:
         selection_ofs=s.args[0]
         logging.info(f"UserSelectionTrap:{s}")
