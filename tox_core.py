@@ -474,10 +474,9 @@ def displayMatchingEntries(dx:OrderedDict,ix_path:str) -> None:
     menu_items=[]
     for i in dx:
         if i[0] == '%':
-            menu_items.append(f"{red(i[1:])}{dx[i][0]}")
+            menu_items.append(f"{red(i[1:])}{grey(dx[i][0])}")
         else:
-            #sys.stderr.write(f"{red(i)}: {abbreviate_path(dx[i][0])} {red(i)}\n")
-            sys.stderr.write(f"{grey(abbreviate_path(dx[i][0],ix_path))} {red(i)}\n")
+            sys.stderr.write(f"  {dx[i][0]} {red(i)}\n")
     sys.stderr.write('   '.join(menu_items))
     sys.stderr.write('\n')
 
@@ -508,7 +507,7 @@ def prompt_editor(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
         return vstrbuff[0]
     elif ord(c) == 13: # Enter
         if vstrbuff[0] == '0':
-            raise UserSelectionTrap(dx['0'][0])
+            raise UserSelectionTrap(0)
         else:
             return vstrbuff[0]
     elif ord(c) == 27:  # Esc
@@ -517,17 +516,22 @@ def prompt_editor(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
         return vstrbuff[0]
     elif vstrbuff[0]=="0":
         if c=='0':
-            raise UserSelectionTrap(dx[c][0])
+            raise UserSelectionTrap(0)
         else:
             logging.info('reset buffer')
             vstrbuff[0]=""
     vstrbuff[0]=vstrbuff[0]+c
     try:
+        try:
+            ofs=int(vstrbuff[0])
+            raise UserSelectionTrap(ofs)
+        except ValueError:
+            ofs=None
         v = dx.get(vstrbuff[0],None) or dx[f"%{vstrbuff[0]}"]
         logging.info(f"User input \"{vstrbuff[0]}\" selects entry [{v}]")
         if v[1]:  # Is there something special we should throw?
             raise v[1]
-        raise UserSelectionTrap(v[0])
+        raise UserSelectionTrap(v[0],ofs)
     except KeyError:
         logging.info(f"User input [{vstrbuff[0]}] doesn't match anything")
         return vstrbuff[0]
@@ -542,21 +546,25 @@ def promptMatchingEntry(mx:List[Tuple[str,int]], ix:IndexContent ) ->Tuple[Index
             yield c
 
     sel = iter(get_selector())
-    sys.stderr.write(f"  ::: Index: \033[;32m{dirname(ix.path)}\033[;0m\n")
-    dx = OrderedDict( {str(next(sel)):(m[0],None) for m in mx} )
+    ixdir=dirname(ix.path)
+    mx_ord=[ ( abbreviate_path( e[0],ixdir ), e[1], e[0] ) for e in mx ]
+    mx_ord=sorted( mx_ord, key=lambda e: len(e[0])/e[1] )
+    sys.stderr.write(f"{yellow(':: Index:')} {green(dirname(ix.path))}\n")
+    dx = OrderedDict( {str(next(sel)):(m[0],None) for m in mx_ord} )
     dx['%q'] = ('<Quit>',KeyboardInterrupt)
     dx['%\\'] = ('<Up Tree>',UserUpTrap)
     dx['%/'] = ('<Down Tree>', UserDownTrap)
     displayMatchingEntries(dx,dirname(ix.path))
     vstrbuff=["0"]
     try:
-        prompt("foo:", 0,lambda c: prompt_editor(vstrbuff,dx,c))
+        prompt("Choose:", 0,lambda c: prompt_editor(vstrbuff,dx,c))
     except UserSelectionTrap as s:
-        logging.info(f"promptMatchingEntry() returns {'mx',s.args[0]}")
-        return (mx, s.args[0])
+        selection_ofs=s.args[0]
+        logging.info(f"UserSelectionTrap:{s}")
+        return (mx_ord, mx_ord[selection_ofs][2])
     except KeyboardInterrupt:
         logging.info("User Ctrl+C in promptMatchingEntry")
-        return (mx, "!echo Ctrl+C")
+        return (mx_ord, "!echo Ctrl+C")
 
 
 
