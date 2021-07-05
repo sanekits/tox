@@ -304,8 +304,12 @@ def ownerCheck(xdir:str, filename:str, only_mine:bool) -> bool:
     if not only_mine:
         return True
     owner = stat("/".join((xdir, filename))).st_uid
-    user = os.environ["USER"]
-    return getpwuid(owner).pw_name == user
+    user = os.environ.get('USER','root')
+    try:
+        return getpwuid(owner).pw_name == user
+    except KeyError:
+        # we can't ident the owner:
+        return True
 
 
 def findIndex(xdir:str=None, only_mine:bool=True) -> IndexContent:
