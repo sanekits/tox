@@ -8,7 +8,7 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "tox_core.py",
             "console": "integratedTerminal",
             "args": ["prog"]
         },

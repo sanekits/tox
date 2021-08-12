@@ -527,10 +527,9 @@ def prompt_editor(vstrbuff:List[str],dx:OrderedDict,c:str) -> str:
         logging.info(f"Erase, now: {vstrbuff[0]}")
         return vstrbuff[0]
     elif ord(c) == 13: # Enter
-        if vstrbuff[0] == '0':
-            raise UserSelectionTrap(0)
-        else:
+        if len(vstrbuff[0]) == 0:
             return vstrbuff[0]
+        raise UserSelectionTrap(int(vstrbuff[0]))
     elif ord(c) == 27:  # Esc
         logging.info('[esc]: reset buffer')
         vstrbuff[0]=""
